@@ -43,7 +43,7 @@ cd "$BUNDLE_DIR"
 echo "[*] Launching Genesis Installer..."
 echo "------------------------------------------------"
 chmod +x ./install_memorybox_appliance.sh
-./install_memorybox_appliance.sh
+./install_memorybox_appliance.sh < /dev/tty
 
 # Cleanup
 echo "[*] Cleaning up temporary files..."
