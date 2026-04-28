@@ -1,0 +1,9 @@
+{
+    "ignore_macs": [
+        "00:00:00:00:00:00"
+    ],
+    "ignore_ouis": [
+        "00:11:22"
+    ],
+    "privacy_comment": "Devices in this list will be skipped by the Sentry and Silent Probes to respect local privacy boundaries."
+}

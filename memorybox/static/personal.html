@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MemoryBox | Personal Archives</title>
+    <link rel="icon" type="image/png" href="static/favicon.ico">
+    <link rel="stylesheet" href="static/style.css?v=1.2.8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            /* Theme: Modern (Royal Purple) */
+            --accent-primary: #7b2cbf;
+            --accent-glow: rgba(123, 44, 191, 0.4);
+            --bg-main: #0a0510;
+            --text-main: rgba(255, 255, 255, 0.9);
+            --panel-bg: rgba(20, 10, 30, 0.6);
+            --panel-border: rgba(123, 44, 191, 0.2);
+            --card-radius: 20px;
+        }
+
+        body.theme-timeless {
+            /* Theme: Timeless (Wood & Brass) */
+            --accent-primary: #d4af37;
+            /* Brass */
+            --accent-glow: rgba(212, 175, 55, 0.2);
+            --bg-main: #1a0f0a;
+            /* Dark Mahogany */
+            --text-main: #f5f5dc;
+            /* Parchment */
+            --panel-bg: rgba(45, 30, 20, 0.85);
+            /* Polished Wood */
+            --panel-border: rgba(212, 175, 55, 0.3);
+            --card-radius: 4px;
+            /* Classic sharp corners */
+        }
+
+        body.theme-botanical {
+            /* Theme: Botanical (Specimen Drawers) */
+            --accent-primary: #83c5be;
+            /* Light Mint */
+            --accent-glow: rgba(131, 197, 190, 0.2);
+            --bg-main: #1b4332;
+            /* Deep Forest Green */
+            --text-main: #d8e2dc;
+            /* Pale Parchment */
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --panel-border: rgba(131, 197, 190, 0.3);
+            --card-radius: 2px;
+        }
+
+        body.theme-timeless .background-mesh {
+            background:
+                linear-gradient(rgba(45, 30, 20, 0.7), rgba(45, 30, 20, 0.7)),
+                url('static/assets/texture_wood.png?v=3'),
+                repeating-linear-gradient(rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 2px, transparent 2px, transparent 15px);
+            background-blend-mode: soft-light;
+        }
+
+        body.theme-botanical .background-mesh {
+            background:
+                linear-gradient(rgba(240, 244, 240, 0.9), rgba(240, 244, 240, 0.9)),
+                url('static/assets/texture_linen.png?v=3');
+            background-blend-mode: overlay;
+        }
+
+        body.theme-botanical {
+            background: #e9ecef;
+            cursor: default;
+        }
+
+        /* Botanical Label Handles */
+        .theme-botanical .response-card::after,
+        .theme-botanical .user-card::after {
+            content: "";
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            width: 30px;
+            height: 10px;
+            background: linear-gradient(135deg, #8d99ae 0%, #edf2f4 100%);
+            border: 1px solid #2b2d42;
+            border-radius: 2px;
+            opacity: 0.5;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        body.theme-botanical .ai-response h4 {
+            color: #1b4332;
+            border-bottom: 1px dashed #1b4332;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        /* Theme: Timeless - Clean Cards (No metallic borders here) */
+        body.theme-timeless .response-card,
+        body.theme-timeless .user-card,
+        body.theme-timeless .personal-input-box {
+            border: 1px solid rgba(212, 175, 55, 0.2) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background-clip: padding-box;
+            position: relative;
+        }
+
+        /* [v1.1.0] Identity Vault Overlays */
+        .vault-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-main);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+            transition: opacity 0.5s ease;
+        }
+
+        .vault-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 3rem;
+            border-radius: var(--card-radius);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+            width: 100%;
+        }
+
+        .profile-tile {
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .profile-tile {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-tile:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--accent-primary);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .profile-avatar {
+            width: 70px;
+            height: 70px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+            box-shadow: 0 0 15px var(--accent-glow);
+            transition: transform 0.3s ease;
+        }
+
+        .profile-tile:hover .profile-avatar {
+            transform: scale(1.1);
+        }
+
+        /* [v1.2.6] Mini Identity Hub Badge */
+        .user-avatar-mini {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .vault-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--panel-border);
+            color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 4px;
+            margin-bottom: 1rem;
+            outline: none;
+        }
+
+        /* Appliance Governance Hub Styles [v1.7.0] */
+        .governance-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .governance-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            width: 90%;
+            max-width: 750px;
+            padding: 3rem;
+            border-radius: var(--card-radius);
+            box-shadow: 0 30px 100px rgba(0, 0, 0, 0.9);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .governance-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .governance-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .governance-section h3 {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        .gov-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .gov-tile {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.2rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .gov-label {
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .gov-value {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .pulse-active {
+            width: 8px;
+            height: 8px;
+            background: #44ff44;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 10px #44ff44;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.5; }
+        }
+
+        .governance-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .governance-toggle:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .personal-container {
+            width: 95%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Center children by default */
+        }
+
+        .personal-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        /* Curation Panel - Wider Command Center */
+        #curation-carousel {
+            width: 100%;
+            /* 50% wider than the 700px chat boxes */
+            margin: 0 auto 2.5rem auto;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        body.theme-timeless #command-center {
+            background: rgba(26, 15, 10, 0.95);
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            border: 8px solid transparent;
+            border-image: url('static/assets/texture_iron.png?v=4') 15% stretch;
+            filter: sepia(0.5) hue-rotate(-10deg) brightness(1.1) contrast(1.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        #command-center {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 280px;
+            /* Reliable floor for the dashboard */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-tabs {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.5rem;
+            z-index: 10;
+        }
+
+        .view-pane-container {
+            position: relative;
+            flex-grow: 1;
+        }
+
+        .view-pane {
+            position: absolute;
+            /* Stacked at the same top-left */
+            top: 0;
+            left: 0;
+            width: 100%;
+            transition: all 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px);
+        }
+
+        .view-pane.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateY(0);
+            position: relative;
+            /* Becomes the height-definer when active */
+        }
+
+        .ingestion-active #curation-carousel {
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        /* Progress Bar Polish */
+
+        .dashboard-tabs {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.5rem;
+        }
+
+        .dash-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .dash-tab {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dash-tab:hover {
+            opacity: 0.8;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .dash-tab.active {
+            opacity: 1;
+            background: var(--accent-primary);
+            color: #fff;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .icon-tab {
+            padding: 6px 10px;
+            opacity: 0.4;
+        }
+
+        /* Timeless Theme Specific Tabs */
+        body.theme-timeless .dash-tab {
+            font-family: 'Georgia', serif;
+            border-radius: 2px;
+            border: 1px solid #d4af37;
+            color: #d4af37;
+        }
+
+        body.theme-timeless .dash-tab.active {
+            background: #d4af37;
+            color: #fff;
+        }
+
+        /* Botanical Theme Specific Tabs: High-Contrast Inactive */
+        body.theme-botanical .dash-tab {
+            font-family: 'Courier New', monospace;
+            border-radius: 0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(241, 241, 230, 0.6);
+            /* Parchment white ink for visibility */
+            background: rgba(255, 255, 255, 0.04);
+            opacity: 1;
+        }
+
+        body.theme-botanical .dash-tab.active {
+            background: #2d6a4f;
+            color: #fff;
+            border-color: #2d6a4f;
+            opacity: 1;
+        }
+
+        /* Specifically address icon transparency for Botanical deselected */
+        body.theme-botanical .dash-tab svg {
+            opacity: 0.7;
+            stroke: currentColor;
+        }
+
+        body.theme-botanical .dash-tab.active svg {
+            opacity: 1;
+        }
+
+        .send-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 8px 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            border-radius: 8px;
+            /* Professional Rectangle */
+            width: auto;
+            min-width: 110px;
+            background: var(--accent-primary);
+            color: var(--bg-main);
+            border: 1px solid var(--accent-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        body.theme-timeless .send-btn {
+            border-radius: 2px;
+            border: 1px solid #d4af37;
+            background: #d4af37;
+            color: #fff;
+        }
+
+        body.theme-botanical .send-btn {
+            border-radius: 0;
+            background: #2d6a4f;
+            color: #fff;
+            border: 1px solid #2d6a4f;
+        }
+
+        .send-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            display: block;
+        }
+
+        #drop-zone {
+            flex-grow: 1;
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            cursor: pointer;
+            min-height: 140px;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        body.theme-botanical #drop-zone {
+            border: 1px solid #2d6a4f;
+            border-radius: 0;
+            background: rgba(255, 255, 255, 0.02);
+            margin: 10px 0;
+        }
+
+
+
+        .check-mark {
+            display: none;
+            color: var(--accent-primary);
+            font-weight: bold;
+            font-size: 1rem;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        /* Remove the pseudo-element borders from chat boxes */
+        body.theme-timeless .response-card::before,
+        body.theme-timeless .user-card::before,
+        body.theme-timeless .personal-input-box::before {
+            display: none;
+        }
+
+        .background-mesh {
+            background:
+                radial-gradient(circle at 20% 30%, rgba(123, 44, 191, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(157, 78, 191, 0.1) 0%, transparent 40%);
+            transition: all 1s ease;
+        }
+
+        .personal-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .personal-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .personal-header h1 {
+            font-size: 3.5rem;
+            font-weight: 600;
+            letter-spacing: -2px;
+            background: linear-gradient(135deg, #fff 0%, #7b2cbf 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            transition: all 0.5s ease;
+        }
+
+        body.theme-timeless .personal-header h1 {
+            font-family: 'Georgia', serif;
+            font-weight: 700;
+            background: linear-gradient(135deg, #d4af37 0%, #8b4513 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        body.theme-botanical .personal-header h1 {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #d8e2dc 0%, #83c5be 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .response-text {
+            line-height: 1.6;
+            color: var(--text-main);
+        }
+
+        .response-text img {
+            max-width: 100%;
+            height: auto;
+            min-height: 200px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin: 1rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+            display: block;
+        }
+
+        .theme-botanical .response-text img {
+            border-radius: 2px;
+            border: 2px solid #1b4332;
+        }
+
+        .response-text img:hover {
+            transform: scale(1.02);
+        }
+
+        .response-text p {
+            margin-bottom: 1rem;
+        }
+
+        .personal-header p {
+            color: var(--text-main);
+            opacity: 0.5;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .input-area {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-top: 3rem;
+            z-index: 100;
+        }
+
+        .personal-input-box {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--card-radius);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-glow);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .personal-input-box:focus-within {
+            border-color: var(--accent-primary);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 30px var(--accent-glow);
+        }
+
+        .personal-input-box textarea {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 1.1rem;
+            resize: none;
+            max-height: 200px;
+            padding: 0.5rem 0;
+            outline: none;
+        }
+
+        .send-btn {
+            background: var(--accent-primary);
+            border: none;
+            border-radius: calc(var(--card-radius) / 2);
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #fff;
+            transition: transform 0.2s;
+        }
+
+        .theme-botanical .send-btn {
+            color: white;
+        }
+
+        .profile-tile:hover {
+            background: rgba(123, 44, 191, 0.2);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .vault-overlay.portal-mode {
+            background: #02010a; /* Solid, deep archival black */
+            backdrop-filter: none;
+            z-index: 9999;
+        }
+
+        .profile-tile.active {
+            border: 2px solid var(--accent-primary);
+            background: rgba(123, 44, 191, 0.15);
+            box-shadow: 0 0 25px rgba(123, 44, 191, 0.2);
+        }
+
+        .resume-badge {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--accent-primary);
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 5px;
+            text-align: center;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        /* --- Theme-Specific Identity Hub --- */
+
+        /* Timeless: Mahogany & Wrought Iron */
+        body.theme-timeless .profile-tile {
+            background: #1a0f0a;
+            border: 1px solid #d4af37;
+            border-radius: 2px;
+        }
+        body.theme-timeless .profile-avatar {
+            background: #d4af37;
+            color: #fff;
+            border-radius: 0;
+            font-family: 'Georgia', serif;
+        }
+        body.theme-timeless .resume-badge {
+            background: #d4af37;
+            color: #fff;
+            font-family: 'Georgia', serif;
+        }
+
+        /* Botanical: Specimen Cabinet */
+        body.theme-botanical .profile-tile {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #2d6a4f;
+            border-radius: 0;
+        }
+        body.theme-botanical .profile-avatar {
+            background: #2d6a4f;
+            color: #fff;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        body.theme-botanical .resume-badge {
+            background: #2d6a4f;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Forge Identity Screen Polish */
+        #create-profile-container h3 {
+            font-family: inherit;
+            text-align: center;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .vault-card label {
+            font-weight: 600;
+            color: var(--accent-primary);
+            letter-spacing: 1px;
+        }
+
+        .response-card {
+            border-left: 4px solid var(--accent-primary) !important;
+            border-radius: var(--card-radius);
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding: 0.8rem 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .archive-btn {
+            background: transparent;
+            border: 1px solid var(--accent-primary);
+            color: var(--accent-primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .archive-btn:hover {
+            background: var(--accent-primary);
+            color: var(--bg-main);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .archive-btn.filed {
+            background: var(--accent-primary);
+            color: #fff;
+            border-color: var(--accent-primary);
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        /* Theme Specific Buttons */
+        body.theme-timeless .archive-btn {
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            border-radius: 2px;
+            font-family: 'Georgia', serif;
+        }
+
+        body.theme-timeless .archive-btn.filed {
+            background: #d4af37;
+            color: #1a0f0a;
+            /* Dark mahogany for contrast */
+        }
+
+        body.theme-botanical .archive-btn {
+            border: 1px solid #2d6a4f;
+            color: #2d6a4f;
+            border-radius: 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        body.theme-botanical .archive-btn.filed {
+            background: #2d6a4f;
+            color: #fff;
+        }
+
+        .session-controls {
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .summary-opt {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .summary-opt input {
+            accent-color: var(--accent-primary);
+            width: 16px;
+            height: 16px;
+        }
+
+        .finalize-btn {
+            background: transparent;
+            border: 1px solid var(--text-main);
+            color: var(--text-main);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.2s;
+        }
+
+        .finalize-btn:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .user-card {
+            border-left: 2px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: var(--card-radius);
+            opacity: 0.9;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+        }
+
+        /* Botanical Card Style */
+        .theme-botanical .response-card,
+        .theme-botanical .user-card {
+            box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        #curation-carousel {
+            margin-bottom: 2rem;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        body.theme-botanical #curation-carousel,
+        body.theme-botanical #command-center {
+            background: rgba(12, 36, 26, 0.4) !important; /* Authentic Frosted Glass (40% Opacity) */
+            backdrop-filter: blur(12px) !important; /* Strong blur keeps text legible even with lower opacity */
+            border: 1px solid #83c5be;
+        }
+
+        .curation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .curation-header p {
+            font-size: 0.8rem;
+            color: var(--text-main);
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        .curation-message {
+            font-size: 0.85rem;
+            color: var(--accent-primary);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .theme-legend {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            min-width: 150px;
+            transition: all 0.5s ease;
+        }
+
+        .legend-title {
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+            border-bottom: 1px dashed var(--panel-border);
+            padding-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .theme-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        .legend-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-main);
+            opacity: 0.7;
+        }
+
+        .legend-item.active .legend-label {
+            opacity: 1;
+            color: var(--accent-primary);
+        }
+
+        .legend-item.active .theme-dot {
+            box-shadow: 0 0 8px var(--accent-glow);
+            border-color: white;
+        }
+
+        /* Tooltip Simulation */
+        .legend-item::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            right: 110%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .legend-item:hover::after {
+            opacity: 1;
+        }
+
+        /* Botanical Specific Legend Style */
+        body.theme-botanical .theme-legend {
+            background: #fff;
+            border: 2px solid #edeff2;
+            box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Silhouette Transparency Optimization */
+        .brand-icon {
+            /* If the icons are pure black silhouettes, this ensures all 'white' artifacts disappear on light backgrounds */
+            mix-blend-mode: multiply;
+            /* If they are dark-on-dark, this sharpens them */
+            filter: brightness(1) contrast(1.1);
+        }
+
+        body.theme-modern .brand-icon {
+            /* For the modern theme, if it's on a dark bg, we might want it to pop more */
+            mix-blend-mode: normal;
+            filter: drop-shadow(0 0 10px var(--accent-glow));
+        }
+
+        body.theme-timeless .brand-icon {
+            /* Ensure the user-edited colors (like the cyan chest) show up accurately */
+            mix-blend-mode: normal;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+        }
+
+        body.theme-botanical .brand-icon {
+            mix-blend-mode: screen;
+            filter: invert(0.8) contrast(1.2) brightness(1.2);
+        }
+
+        .dot-modern {
+            background: #7b2cbf;
+        }
+
+        .dot-timeless {
+            background: #d4af37;
+        }
+
+        .dot-botanical {
+            background: #2d6a4f;
+        }
+
+        /* Cruiser Peruser Styling */
+        .browser-section {
+            margin-top: 1.5rem;
+            border-top: 1px solid rgba(123, 44, 191, 0.2);
+            padding-top: 1rem;
+        }
+
+        .browser-path {
+            font-size: 0.75rem;
+            color: #aaa;
+            margin-bottom: 0.5rem;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .browser-grid {
+            max-height: 50vh;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .browser-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .browser-item:hover {
+            background: rgba(123, 44, 191, 0.2);
+        }
+
+        .browser-item.dir {
+            color: #9d4ebf;
+            font-weight: 600;
+        }
+
+        .browser-item-icon {
+            opacity: 0.6;
+        }
+
+        /* v1.0.0: Diagnostic Button Enhancements */
+        .diag-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .diag-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .diag-btn.purple {
+            background: var(--accent-purple);
+        }
+
+        .diag-btn.purple:hover {
+            background: #9d4ebf;
+        }
+
+        .diag-btn.small {
+            padding: 4px 10px;
+            font-size: 0.7rem;
+        }
+
+        .broken-img-helper {
+            background: rgba(255, 0, 0, 0.05);
+            border: 1px dashed rgba(255, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        .broken-img-helper code {
+            display: block;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px;
+            margin-top: 5px;
+            border-radius: 4px;
+            color: var(--accent-purple);
+        }
+        .governance-banner {
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            animation: fadeIn 0.5s ease-out;
+            z-index: 100;
+        }
+        .banner-pending {
+            background: rgba(255, 166, 0, 0.15);
+            border: 1px solid rgba(255, 166, 0, 0.4);
+            color: #ffa600;
+        }
+        .banner-authorized {
+            background: rgba(255, 0, 0, 0.15);
+            border: 1px solid rgba(255, 0, 0, 0.5);
+            color: #ff4d4d;
+            animation: banner-pulse 2s infinite alternate;
+        }
+        @keyframes banner-pulse {
+            from { box-shadow: 0 0 5px rgba(255, 0, 0, 0.1); }
+            to { box-shadow: 0 0 20px rgba(255, 0, 0, 0.3); }
+        }
+        .banner-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid currentColor;
+            color: inherit;
+            padding: 5px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        .banner-btn:hover { background: rgba(255,255,255,0.2); }
+        /* [v1.4.0] Curation Toggle & Document Styling */
+        .curation-toggle-wrap {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 3px;
+            border: 1px solid var(--panel-border);
+            margin: 0 1rem;
+        }
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .toggle-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+        .text-artifact-box {
+            display: flex;
+            width: 100%;
+            height: 480px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        .image-box {
+            overflow: hidden;
+            border-radius: 8px;
+            cursor: zoom-in;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+        .image-box img {
+            max-width: 100%;
+            max-height: 480px;
+            object-fit: contain;
+            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .image-box:hover img {
+            transform: scale(1.15);
+        }
+        .artifact-sidebar {
+            width: 150px;
+            background: #111;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            max-height: 480px;
+        }
+        .artifact-sidebar img {
+            width: 120px;
+            height: auto;
+            max-height: 160px;
+            object-fit: contain;
+            background: #000;
+            border: 1px solid #444;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .artifact-content {
+            flex: 1;
+            padding: 0px 20px 10px 20px;
+            overflow-y: auto;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #ccc;
+            background: #1a1a1a;
+            user-select: text;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        #artifact-text-preview {
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+        }
+
+        /* [v1.6.0] Archival Governance: Excluded State (Surgical Seclusion) */
+        .specimen-row.excluded .image-box {
+            opacity: 0.5;
+            filter: grayscale(1);
+            transition: all 0.4s ease;
+            border: 1px dashed var(--accent-primary);
+        }
+        .specimen-row.excluded .image-box img {
+            filter: contrast(1.1); /* Keep it sharp in BW */
+        }
+
+        /* Walkthrough Pointer */
+        .walkthrough-highlight {
+            position: relative;
+            z-index: 1000;
+            box-shadow: 0 0 20px 5px var(--accent-primary) !important;
+            animation: pulse-glow 1.5s infinite;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px var(--accent-glow); }
+            50% { box-shadow: 0 0 25px var(--accent-primary); }
+            100% { box-shadow: 0 0 5px var(--accent-glow); }
+        }
+    </style>
+</head>
+
+<body class="theme-modern">
+    <!-- [v1.1.0] Vault Sealed Overlay -->
+    <div id="vault-sealed-overlay" class="vault-overlay" style="display: none;">
+        <div class="vault-card">
+            <h1 style="font-family: 'Playfair Display', serif; color: var(--accent-primary);">Vault Sealed</h1>
+            <p style="color: var(--text-main); opacity: 0.7;">This appliance is locked. Enter the Master Appliance Key
+                to unseal the archives.</p>
+            <input type="password" id="appliance-key-input" class="vault-input" placeholder="••••-••••-••••" onkeydown="if(event.key === 'Enter') unsealVault()">
+            <button class="btn send-btn" style="width: 100%;" onclick="unsealVault()">Unseal Vault</button>
+            <p id="unseal-error" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 1rem; display: none;"></p>
+        </div>
+    </div>
+
+    <!-- [v1.1.0] Identity Hub Overlay -->
+    <div id="identity-overlay" class="vault-overlay" style="display: none;">
+        <div class="vault-card" style="max-width: 600px;">
+            <div id="direct-auth-portal" style="margin-top: 2rem;">
+                <h2 id="portal-description" style="font-weight: 300; letter-spacing: 0.05rem; opacity: 0.9; margin-bottom: 2rem; text-align: center;">Log in to MemoryBox</h2>
+
+                <div style="margin-bottom: 1.5rem; text-align: left;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">Archival
+                        Identity</label>
+                    <input type="text" id="portal-name-input" class="vault-input" placeholder="Enter Identity Name"
+                        autocomplete="off">
+                </div>
+
+                <div style="text-align: left;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">Security
+                        PIN</label>
+                    <input type="password" id="portal-pin-input" class="vault-input" placeholder="••••••"
+                        style="letter-spacing: 2px;" onkeydown="if(event.key === 'Enter') submitLogin()">
+                </div>
+
+                <button class="btn send-btn" style="width: 100%; margin-top: 2rem;" onclick="submitLogin()">Unseal
+                    Identity</button>
+                <button id="portal-cancel-btn" class="diag-btn small" style="width: 100%; margin-top: 1rem; opacity: 0.5; display: none;" onclick="showIdentityHub()">Return to Management Hub</button>
+                <p id="login-error" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 1rem; display: none;"></p>
+            </div>
+
+            <div id="profiles-grid-container" style="display: none; margin-top: 2rem;">
+                <p style="color: var(--text-main); opacity: 0.7; margin-bottom: 1.5rem;">Archive Identity Management</p>
+                <div id="profiles-list" class="profile-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+                    <!-- Profiles injected here for Authenticated Admins -->
+                </div>
+            </div>
+
+            <!-- v1.1.0: Create Profile Form (SuperAdmin only) -->
+            <div id="create-profile-container"
+                style="display: none; margin-top: 2rem; border-top: 1px solid var(--panel-border); padding-top: 2rem; text-align: left;">
+                <h3 style="font-size: 1rem; color: var(--accent-primary); margin-bottom: 1.5rem;">Ingest New Archival Identity</h3>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">Display Name</label>
+                    <input type="text" id="new-profile-name" class="vault-input" placeholder="e.g. Archivist">
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">Legal Identity (Full Name)</label>
+                    <input type="text" id="new-profile-legal-name" class="vault-input" placeholder="e.g. Samuel Clemens">
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">Archival Role</label>
+                    <select id="new-profile-role" class="vault-input" style="background: var(--panel-bg); transition: opacity 0.3s ease;">
+                        <option value="USER">USER</option>
+                        <option value="ADMIN">ADMINISTRATOR</option>
+                        <option value="SUPERADMIN">SUPER-ADMINISTRATOR</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">6-Digit Security PIN</label>
+                    <input type="password" id="new-profile-pin" class="vault-input" placeholder="Enter alphanumeric PIN" maxlength="12">
+                </div>
+
+                <button class="btn send-btn" style="width: 100%;" onclick="submitNewProfile()">Ingest Identity</button>
+                <button class="diag-btn small" style="width: 100%; margin-top: 1rem; opacity: 0.5;" onclick="showIdentityHub()">Cancel</button>
+                <p id="create-error" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 1rem; display: none;"></p>
+            </div>
+
+            <!-- [v1.2.6] PIN Management Container (Change/Reset) -->
+            <div id="pin-management-container"
+                style="display: none; margin-top: 2rem; border-top: 1px solid var(--panel-border); padding-top: 2rem; text-align: left;">
+                <h3 id="pin-mgmt-title" style="font-size: 1rem; color: var(--accent-primary); margin-bottom: 1.5rem;">Recalibrate Access PIN</h3>
+                
+                <div id="current-pin-block" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">Current Security PIN</label>
+                    <input type="password" id="change-pin-current" class="vault-input" placeholder="••••••">
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">New Security PIN (6+ Alphanumeric)</label>
+                    <input type="password" id="change-pin-new" class="vault-input" placeholder="New PIN">
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 5px;">Confirm New PIN</label>
+                    <input type="password" id="change-pin-confirm" class="vault-input" placeholder="Confirm New PIN">
+                </div>
+
+                <button class="btn send-btn" style="width: 100%;" onclick="submitPinChange()">Ingest New PIN</button>
+                <button class="diag-btn small" style="width: 100%; margin-top: 1rem; opacity: 0.5;" onclick="showIdentityHub()">Cancel</button>
+                <p id="pin-mgmt-error" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 1rem; display: none;"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="theme-legend fadeIn">
+        <div class="legend-title">Theme Chooser</div>
+        <div class="legend-items">
+            <div class="legend-item active" onclick="setTheme('modern', this)" data-tooltip="Cyber Vault Interface">
+                <div class="theme-dot dot-modern"></div>
+                <span class="legend-label">Modern</span>
+            </div>
+            <div class="legend-item" onclick="setTheme('timeless', this)" data-tooltip="Mahogany & Wrought Iron">
+                <div class="theme-dot dot-timeless"></div>
+                <span class="legend-label">Timeless</span>
+            </div>
+            <div class="legend-item" onclick="setTheme('botanical', this)" data-tooltip="Specimen Collector's Key">
+                <div class="theme-dot dot-botanical"></div>
+                <span class="legend-label">Botanical</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="background-mesh"></div>
+    <div class="personal-container">
+        <!-- [v1.2.0] Continuity Governance Banner -->
+        <div id="continuity-banner" style="display: none;"></div>
+        
+        <div id="vault-ui" style="display: none; width: 100%; flex-direction: column; align-items: center;">
+            <header class="personal-header fadeIn">
+            <div class="logo">
+                <img id="brandIcon" src="static/assets/icon_safe.png?v=4" alt="MemoryBox" class="brand-icon" style="cursor: pointer;" onclick="toggleDiagnostics()">
+                <h1 id="brandText" style="cursor: pointer;" onclick="toggleDiagnostics()">MemoryBox</h1>
+            </div>
+            <p id="app-subtitle">Initializing Archives...</p>
+
+            <!-- v0.9.5: Manual Diagnostic Tool -->
+            <div id="diagnosticPanel"
+                style="display:none; margin:1rem auto; max-width:600px; padding:1.5rem; border:1px solid var(--accent-primary); border-radius:12px; background: var(--panel-bg); text-align:left; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <div id="memoryStats"
+                    style="margin-bottom:1.5rem; padding:12px; background:rgba(255, 255, 255, 0.05); border-radius:8px; border:1px solid rgba(255, 255, 255, 0.1); display:none;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#fff;">
+                        <span>Archive Records: <strong id="stat-writings">...</strong></span>
+                        <span>Visual Awareness: <strong id="stat-images">...</strong></span>
+                    </div>
+                </div>
+
+                <!-- [v1.7.0] Management Access -->
+                <div style="margin-bottom: 1.5rem; display: flex; gap: 10px;">
+                    <button class="diag-btn" onclick="showIdentityHub()">Admin: Identity Management</button>
+                    <button class="diag-btn red" onclick="unmountVaultManually()">Atomic Hard Seal</button>
+                </div>
+
+                <!-- Visual Gallery Trigger (Re-styled as the main Diagnostic action) -->
+                <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <p
+                        style="font-size:0.75rem; color:var(--accent-primary); font-weight:600; margin-bottom:1rem; text-transform: uppercase; letter-spacing: 1px;">
+                        Sensory Vault Search</p>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="visualSearchInput"
+                            placeholder="Search visual descriptions (e.g. 'blue car')..."
+                            style="flex-grow:1; background:rgba(255,255,255,0.05); border:1px solid #444; color:white; border-radius:8px; padding:8px 12px; outline: none; border-color: rgba(255, 255, 255, 0.2);">
+                        <button class="diag-btn purple" onclick="triggerVisualSearch()">Search</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Command Center: Curation & Ingestion Flipper -->
+        <div id="command-center" class="fadeIn"
+            style="display:none; width: 100%; margin: 0 auto 2.5rem auto;">
+            <div class="dashboard-tabs">
+                <div class="dash-group">
+                    <button class="dash-tab active" id="tab-curation" onclick="setVaultView('curation')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        Curation
+                    </button>
+                    <button class="dash-tab" id="tab-ingestion" onclick="setVaultView('ingestion')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Ingestion
+                    </button>
+                </div>
+                <div class="dash-group">
+                    <div id="active-user-badge"
+                        style="display: none; align-items: center; justify-content: center; gap: 10px; margin-right: 15px; background: rgba(255,255,255,0.05); padding: 4px 14px 4px 4px; border-radius: 20px; border: 1px solid var(--panel-border); cursor: pointer;"
+                        onclick="confirmLogout()" title="Archive Identity Exit">
+                        <div id="user-mini-avatar"
+                            style="width: 24px; height: 24px; border-radius: 50%; background: var(--accent-primary); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: white;">
+                        </div>
+                        <span id="user-display-name"
+                            style="font-size: 0.75rem; font-weight: 600; color: var(--text-main);"></span>
+                    </div>
+                    <button class="dash-tab icon-tab" title="Archival Governance" onclick="toggleGovernance()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                        GOVERNANCE
+                    </button>
+                    <button class="dash-tab icon-tab" title="User Profile" onclick="showIdentityHub()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        USERS
+                    </button>
+                </div>
+            </div>
+
+            <div class="view-pane-container">
+                <!-- Pane 1: Curation Carousel -->
+                <!-- [v1.2.6] Focused Curation Bench -->
+                <div id="curation-carousel" class="view-pane active">
+                    <div class="curation-header">
+                        <div class="curation-title-wrap">
+                            <button id="curation-rollup-toggle" class="icon-btn-text">
+                                <span class="chevron">▾</span>
+                                <h3>CURATE</h3>
+                            </button>
+                        </div>
+                        <div id="curation-queue-pos" class="stat-badge">Memory 0 / 0</div>
+                        <div class="curation-toggle-wrap">
+                            <button id="mode-toggle-visual" class="toggle-btn active" onclick="setCurationMode('visual')">Visual</button>
+                            <button id="mode-toggle-textual" class="toggle-btn" onclick="setCurationMode('textual')">Textual</button>
+                        </div>
+                        <div id="admin-badge" class="stat-badge super-admin-only" style="display:none; cursor: pointer;" onclick="toggleSuperAdminMode()" title="Toggle Global vs Individual View">
+                            <span id="super-admin-label">SUPER-ADMIN MODE: ON</span>
+                        </div>
+                        <button id="curate-recall-toggle" class="action-btn secondary" style="margin-left:auto; font-size: 0.75rem; padding: 4px 12px;" title="Flip between Included and Excluded archives">Recall: INCLUDED</button>
+                    </div>
+                    
+                    <div id="curation-bench" class="curation-bench">
+                        <div id="active-specimen" class="specimen-row">
+                            <div class="specimen-actions-header">
+                                <button id="curate-just-right" class="action-btn primary">Just Right</button>
+                                <button id="curate-revise" class="action-btn secondary">Revise</button>
+                                <button id="curate-reminisce" class="action-btn secondary">Reminisce</button>
+                                <button id="curate-skip" class="action-btn outline">Skip</button>
+                            </div>
+
+                            <div class="specimen-main-view">
+                                <div id="specimen-image-container" class="image-box">
+                                    <img id="active-image" src="" alt="Specimen" onerror="handleBrokenMedia(this)">
+                                    <div id="textual-artifact-viewer" class="text-artifact-box" style="display:none;">
+                                        <div class="artifact-sidebar">
+                                            <img id="artifact-thumbnail" src="" alt="Thumbnail" onerror="handleBrokenMedia(this)">
+                                        </div>
+                                        <div class="artifact-content">
+                                            <div id="artifact-text-preview"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="specimen-soul">
+                                    <!-- View 1: Current Sensing -->
+                                    <div id="specimen-sensing-view">
+                                        <div class="sensory-label">CURRENT SENSING</div>
+                                        <p id="specimen-desc"></p>
+                                    </div>
+
+                                    <!-- View 2: Revision Workbench (Integrated) -->
+                                    <div id="specimen-refining-view" style="display:none;">
+                                        <div class="sensory-label">CURATION BENCH</div>
+                                        <p style="font-size: 0.8rem; opacity: 0.6; margin-bottom: 1rem;">Provide grounding to sharpen the AI's perspective.</p>
+                                        <div class="grounding-zone" style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 2rem;">
+                                            <textarea id="grounding-input" class="refinement-input" placeholder="e.g. This is Grandpa's first car, a 1968 Ford Mustang..." style="margin-bottom: 1rem;"></textarea>
+                                            <div style="display: flex; justify-content: flex-end; gap: 0.8rem;">
+                                                <button id="regen-blind" class="action-btn outline small" style="opacity: 0.8; border-color: rgba(255,255,255,0.2);">Blind Sharpen</button>
+                                                <button id="regen-sharpen" class="action-btn outline small">Sharpen</button>
+                                            </div>
+                                        </div>
+                                        <div class="archival-governance-row" style="display: flex; gap: 40px; margin-bottom: 2rem; align-items: start;">
+                                            <!-- Column 1: Archival Access -->
+                                            <div class="control-column" style="flex: 1;">
+                                                <div class="sensory-label" style="margin-bottom: 0.8rem;">ARCHIVAL ACCESS</div>
+                                                <div class="dash-group" style="margin-bottom: 1rem;">
+                                                    <button id="curate-visibility-private" class="dash-tab" onclick="setCurationVisibility('PRIVATE')">INDIVIDUAL</button>
+                                                    <button id="curate-visibility-shared" class="dash-tab" onclick="setCurationVisibility('SHARED')">COMMUNAL</button>
+                                                </div>
+                                                <p id="access-tip" style="font-size: 0.65rem; color: var(--text-dim); line-height: 1.4;">Visible only to your personal identity vault.</p>
+                                            </div>
+
+                                            <!-- Column 2: Archival Recall -->
+                                            <div class="control-column" style="flex: 1;">
+                                                <div class="sensory-label" style="margin-bottom: 0.8rem;">ARCHIVAL RECALL</div>
+                                                <div class="dash-group" style="margin-bottom: 1rem;">
+                                                    <button id="recall-include-btn" class="dash-tab" onclick="setArchivalRecall(0)">INCLUDED</button>
+                                                    <button id="recall-exclude-btn" class="dash-tab" onclick="setArchivalRecall(1)">EXCLUDED</button>
+                                                </div>
+                                                <p id="exclusion-tip" style="font-size: 0.65rem; color: var(--text-dim); line-height: 1.4;">Active in Reasoning and Recollection.</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="regen-preview" class="regen-preview" style="display:none; margin-bottom: 2rem;">
+                                            <div class="sensory-label">PROPOSED SENSING</div>
+                                            <p id="proposed-desc" style="font-size: 1rem; line-height: 1.6; font-style: italic; opacity: 0.9;"></p>
+                                        </div>
+
+                                        <div class="refinement-bottom-actions" style="display: flex; gap: 1rem; padding-top: 1.5rem; border-top: 1px dashed rgba(255,255,255,0.1);">
+                                            <button id="regen-keep" class="action-btn primary locked" style="flex: 1;">INGEST</button>
+                                            <button id="regen-cancel" class="action-btn outline" style="flex: 1;">Cancel</button>
+                                        </div>
+                                    </div>
+
+                                    <div id="specimen-metadata" class="specimen-metadata-tag super-admin-only" style="display:none; margin-top:10px; font-size: 0.7rem; color: var(--accent-primary); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                                        By: <span id="owner-tag-name">Archivist</span> [<span id="visibility-tag-status">COMMUNAL</span>]
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="empty-curation" class="empty-state" style="display:none;">
+                        <p>Vault sensing pass complete for this level.</p>
+                        <button id="level-up-btn" class="action-btn outline">Scan Level 1 Memories</button>
+                    </div>
+                </div>
+
+                <!-- Pane 2: Ingestion Vault -->
+                <div id="ingestion-vault" class="view-pane">
+                    <div class="curation-header">
+                        <p>Intake Vault</p>
+                        <p class="curation-message">Feed your memories (Drag & Drop).</p>
+                    </div>
+
+
+                    <!-- v1.1.0: Ingestion Privacy Controls -->
+                    <div
+                        style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; gap: 20px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid var(--panel-border);">
+                        <span
+                            style="font-size: 0.75rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Storage
+                            Compartment</span>
+                        <div
+                            style="display: flex; gap: 5px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 8px;">
+                            <button id="ingest-visibility-private" class="dash-tab"
+                                style="font-size: 0.7rem; padding: 5px 12px;"
+                                onclick="setIngestVisibility('PRIVATE')">INDIVIDUAL</button>
+                            <button id="ingest-visibility-shared" class="dash-tab active"
+                                style="font-size: 0.7rem; padding: 5px 12px;"
+                                onclick="setIngestVisibility('SHARED')">COMMUNAL</button>
+                        </div>
+                        <p id="visibility-description"
+                            style="font-size: 0.65rem; color: var(--text-dim); line-height: 1.2; margin: 0; white-space: nowrap;">
+                            Uploads will appear in searches by any user.
+                        </p>
+                    </div>
+
+                    <div id="drop-zone"
+                        style="flex-grow: 1; border: 2px dashed rgba(255,255,255,0.1); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; min-height: 140px; transition: all 0.2s;">
+                        <input type="file" id="file-chooser" multiple style="display: none;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1" style="opacity: 0.3;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span id="drop-zone-text"
+                            style="font-size: 0.8rem; color: var(--text-main); opacity: 0.4; text-transform: uppercase; letter-spacing: 1px;">Drag
+                            Files & Folders (or tap to choose)</span>
+                    </div>
+
+                    <button id="commit-ingestion-btn" class="btn send-btn"
+                        style="width: 100%; margin-top: 1rem; display: none;" onclick="commitDigestion()">
+                        Ingest into Archive (0 Items)
+                    </button>
+
+                    <!-- [v1.8.7] Upload Progress Bar (Moved to Top for Visibility) -->
+                    <div id="upload-progress-container" style="display: none; margin-top: 1rem; margin-bottom: 1.5rem; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 0.65rem; color: var(--accent-primary); text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Uploading to Incoming Vault</span>
+                            <span id="upload-progress-text" style="font-size: 0.65rem; color: var(--text-dim);">0%</span>
+                        </div>
+                        <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
+                            <div id="upload-progress-bar" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.3s ease;"></div>
+                        </div>
+                    </div>
+
+                    <div id="ingest-queue" style="margin-top: 1.5rem; display: none;">
+
+                        <h4 id="staged-header" style="font-size: 0.65rem; color: var(--accent-primary); opacity: 0.7; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; font-weight: 800;">Staged Items</h4>
+                        <!-- Status items added by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="results-area" class="chat-container">
+            <!-- Welcome Message -->
+            <div class="ai-response glass response-card fadeIn">
+                <h4>MemoryBox Online</h4>
+                <div class="response-text">
+                    Welcome! I have access to your memories. What would you like to see?
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area fadeIn">
+            <div class="personal-input-box">
+                <textarea id="chat-input" placeholder="What would you like to see?" rows="1"></textarea>
+                <button class="send-btn" id="send-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <span id="send-btn-text">INPUT</span>
+                </button>
+            </div>
+            <div class="session-controls">
+                <label class="summary-opt">
+                    <input type="checkbox" id="archive-summary-toggle">
+                    <span>Save a summary of this chat in MemoryBox</span>
+                </label>
+                <label class="summary-opt" style="margin-top: 5px; opacity: 0.9; display: none;">
+                    <input type="checkbox" id="archive-verbatim-toggle">
+                    <span style="color: var(--accent-primary);">Ingest verbatim transcript into Archive</span>
+                </label>
+                <button class="finalize-btn" style="margin-top: 10px;" onclick="finalizeSession()">Close Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden elements for script compatibility -->
+    <select id="model-select" class="hidden" style="display:none"></select>
+    <input type="checkbox" id="allow-web" class="hidden" style="display:none">
+    <input type="radio" id="mode-wiki" class="hidden" style="display:none">
+    <input type="radio" id="mode-tactical" class="hidden" style="display:none">
+    <button id="stop-btn" class="hidden" style="display:none"></button>
+
+
+
+    </div>
+
+
+    <!-- [v1.7.0] Appliance Governance Hub Overlay -->
+    <div id="governancePanel" class="governance-overlay">
+        <div class="governance-card">
+            <div class="governance-header">
+                <h2 style="margin:0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                    <span class="pulse-active"></span> Archival Governance
+                </h2>
+                <button class="diag-btn small" onclick="toggleGovernance()">Close</button>
+            </div>
+
+            <div class="governance-section">
+                <h3>Identity Integrity</h3>
+                <div class="gov-grid">
+                    <div class="gov-tile">
+                        <span class="gov-label">Display Name (Login)</span>
+                        <span id="gov-display-name" class="gov-value">...</span>
+                    </div>
+                    <div class="gov-tile" style="border-bottom: 2px solid var(--accent-primary);">
+                        <span class="gov-label">Legal Identity (Archival Anchor)</span>
+                        <input type="text" id="gov-legal-name" class="vault-input" style="padding: 4px; text-align: left; font-size: 1rem; border:none; background:transparent;" placeholder="Enter legal name...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="governance-section">
+                <h3>Archival Continuity (Succession)</h3>
+                <div class="gov-grid" style="opacity: 0.6;">
+                    <div class="gov-tile">
+                        <span class="gov-label">Active Delegates</span>
+                        <span class="gov-value">0 Defined (Mockup)</span>
+                    </div>
+                    <div class="gov-tile">
+                        <span class="gov-label">Succession Logic</span>
+                        <span class="gov-value">Manual Unlock Only</span>
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                    <label class="governance-toggle" title="Allow the AI to learn from your writing style for future persona mimicry.">
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <span style="font-size: 0.85rem; font-weight: 600;">Permit Style Sampling (Mimicry)</span>
+                            <span style="font-size: 0.65rem; color: var(--text-dim);">The Sense Engine will refine its voice based on your archived writings.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="gov-mimicry-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                </div>
+            </div>
+
+            <div class="governance-section" style="margin-bottom: 0;">
+                <h3>Active Appliance Pulse</h3>
+                <div class="gov-grid">
+                    <div class="gov-tile">
+                        <span class="gov-label">Current Connection</span>
+                        <span id="gov-session-ip" class="gov-value">...</span>
+                    </div>
+                    <div class="gov-tile">
+                        <span class="gov-label">Archivist Status</span>
+                        <span id="gov-user-role" class="gov-value">...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="gov-save-btn" class="diag-btn" onclick="saveGovernanceIdentity()">Ingest Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- v1.2.0: Deep Sensing Ingestion Monitor (Floating Overlay) -->
+    <div id="deep-sensing-monitor" class="deep-sensing-wrap">
+        <div class="sensing-dot"></div>
+        <div class="sensing-info">
+            <div id="sensing-title" class="sensing-title">Deep Sensing Active</div>
+            <div id="sensing-file" class="sensing-file">Initializing sensors...</div>
+            <div class="sensing-progress-bar">
+                <div id="sensing-progress-fill" class="sensing-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/personal.js?v=1.6.5"></script>
+</body>
+
+</html>

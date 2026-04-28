@@ -1,0 +1,65 @@
+{
+  "09:5F:C6:77:C5:3F": {
+    "first_seen": "2026-04-03T19:35:41.897044",
+    "visits": 1,
+    "name": "Unnamed Device",
+    "vendor": "Unknown",
+    "probed": false
+  },
+  "E7:E7:2F:E2:B8:CD": {
+    "first_seen": "2026-04-03T19:35:41.908082",
+    "visits": 2,
+    "name": "846B21E36C1E33A3E9",
+    "vendor": "Unknown",
+    "probed": false
+  },
+  "1D:0E:11:4E:6E:99": {
+    "first_seen": "2026-04-03T19:35:41.946967",
+    "visits": 2,
+    "name": "Unnamed Device",
+    "vendor": "Unknown",
+    "probed": false
+  },
+  "2E:90:94:EC:BD:17": {
+    "first_seen": "2026-04-03T19:35:42.391944",
+    "visits": 1,
+    "name": "Unnamed Device",
+    "vendor": "Unknown",
+    "probed": false
+  },
+  "A8:03:2A:F7:99:1E": {
+    "first_seen": "2026-04-03T19:35:42.420718",
+    "visits": 2,
+    "name": "Snooz-991E",
+    "vendor": "Unknown",
+    "probed": false
+  },
+  "78:B6:FE:FA:B7:5A": {
+    "first_seen": "2026-04-03T19:35:42.711202",
+    "visits": 2,
+    "name": "Owner (Samsung)",
+    "vendor": "Unknown",
+    "probed": false
+  },
+  "FF:F8:BE:97:93:C9": {
+    "first_seen": "2026-04-03T19:35:43.338891",
+    "visits": 2,
+    "name": "Unnamed Device",
+    "vendor": "Unknown",
+    "probed": false
+  },
+  "16:35:FF:63:02:7E": {
+    "first_seen": "2026-04-03T19:38:31.031485",
+    "visits": 1,
+    "name": "Unnamed Device",
+    "vendor": "Unknown",
+    "probed": false
+  },
+  "36:CE:D6:28:90:58": {
+    "first_seen": "2026-04-03T19:38:31.974636",
+    "visits": 1,
+    "name": "Unnamed Device",
+    "vendor": "Unknown",
+    "probed": false
+  }
+}
