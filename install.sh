@@ -71,7 +71,13 @@ mkdir -p "$APP_DIR"
 
 # Smart Detection: Look for 'memorybox' in current dir, parent dir, or script's dir
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ ! -d "./memorybox" ]; then\n    echo "[*] Source not found locally. Fetching from GitHub..."\n    git clone https://github.com/Fruzzetti/memorybox.git temp_install\n    cd temp_install\nfi\n\nif [ -d "./memorybox" ]; then
+if [ ! -d "./memorybox" ]; then
+    echo "[*] Source not found locally. Fetching from GitHub..."
+    git clone https://github.com/Fruzzetti/memorybox.git temp_install
+    cd temp_install
+fi
+
+if [ -d "./memorybox" ]; then
     SRC_DIR="./memorybox"
 elif [ -d "../memorybox" ]; then
     SRC_DIR="../memorybox"
