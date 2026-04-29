@@ -2347,7 +2347,8 @@ async function commitDigestion() {
 
             await fetchWithAuth('api/ingestion/upload', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                signal: AbortSignal.timeout(60000) // [v1.8.11] Prevent hanging on orphaned file handles
             });
 
             const percent = Math.round(((i + 1) / total) * 100);

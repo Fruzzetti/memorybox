@@ -10,7 +10,7 @@ import shutil
 import stat # [v1.7.15] Hardware-level device checking
 import httpx
 import uvicorn
-# import psutil [v1.2.0] Disabled for environment compatibility
+import psutil 
 import hashlib
 import base64
 from datetime import datetime, timedelta
@@ -449,11 +449,24 @@ CANARY_MODEL = "qwen2.5:1.5b" # 1.5B (Apache 2.0) - Always Resident if possible
 WHISPER_MODEL_SIZE = "large-v3" # [v1.8.1] High-Fidelity Archival Standard
 
 class ModelOrchestrator:
-    """ [v1.7.0] Governance of VRAM Residency & Production Sensing. """
+    """ [v1.8.12] Governance of VRAM Residency & Multi-Hardware Sensing. """
     def __init__(self):
         self.active_mode = None # 'INSIGHT' (Oracle), 'INTAKE' (Sensing), or 'TRANSCRIBE'
         self.lock = asyncio.Lock()
         self.whisper_engine = None
+        
+        # [v1.8.12] Hardware Intelligence: Detect RAM and select optimal precision
+        total_ram_gb = psutil.virtual_memory().total / (1024**3)
+        logger.info(f"[ORCHESTRATOR] Hardware Audit: {total_ram_gb:.2f} GB RAM Detected.")
+        
+        if total_ram_gb >= 15.5: # Targeting 16GB+ systems
+            self.whisper_size = "large-v3"
+            self.whisper_precision = "float16"
+            logger.info("[ORCHESTRATOR] Precision: HIGH-FIDELITY (large-v3 / float16)")
+        else:
+            self.whisper_size = "small"
+            self.whisper_precision = "int8"
+            logger.info("[ORCHESTRATOR] Precision: SAFE-MODE (small / int8)")
     
     async def ensure_mode(self, target_mode: str):
         """ Park and Shift the VRAM resident models as needed. """
@@ -485,11 +498,11 @@ class ModelOrchestrator:
             self.active_mode = target_mode
             
             if target_mode == 'TRANSCRIBE':
-                # Load Whisper large-v3 natively (CPU/oneDNN optimized for Intel)
-                logger.info(f"[ORCHESTRATOR] Waking Transcription Engine ({WHISPER_MODEL_SIZE})...")
+                # Load Whisper natively (CPU/oneDNN optimized for Intel)
+                logger.info(f"[ORCHESTRATOR] Waking Transcription Engine ({self.whisper_size})...")
                 if WhisperModel:
-                    # [v1.8.1] Precision Upgrade: float16 utilization for 32GB RAM headroom
-                    self.whisper_engine = WhisperModel(WHISPER_MODEL_SIZE, device="cpu", compute_type="float16")
+                    # [v1.8.12] Dynamic Precision Upgrade
+                    self.whisper_engine = WhisperModel(self.whisper_size, device="cpu", compute_type=self.whisper_precision)
                 else:
                     logger.error("[ORCHESTRATOR] Whisper requested but binary NOT found via pip.")
             else:

@@ -17,7 +17,7 @@ echo "################################################"
 
 # 1. Root Check
 if [ "$EUID" -ne 0 ]; then
-  echo "[!] Please run as root (sudo ./install.sh)"
+  echo "[!] Please run as root (sudo ./install_memorybox_appliance.sh)"
   exit 1
 fi
 
@@ -71,18 +71,7 @@ mkdir -p "$APP_DIR"
 
 # Smart Detection: Look for 'memorybox' in current dir, parent dir, or script's dir
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "[*] Current Directory: $(pwd)"
-
-if [ ! -d "./memorybox" ]
-then
-    echo "[*] Source not found locally. Fetching from GitHub..."
-    rm -rf temp_install
-    git clone https://github.com/Fruzzetti/memorybox.git temp_install
-    cd temp_install || exit 1
-fi
-
-if [ -d "./memorybox" ]
-then
+if [ -d "./memorybox" ]; then
     SRC_DIR="./memorybox"
 elif [ -d "../memorybox" ]; then
     SRC_DIR="../memorybox"
@@ -228,6 +217,15 @@ nginx -t && systemctl restart nginx
 # 11. mDNS Discovery (Avahi)
 systemctl enable avahi-daemon
 systemctl restart avahi-daemon
+
+# 11.5 Boot Resilience (v1.8.11)
+# Ensure the archival mount doesn't hang the system boot if the drive is missing
+echo "[*] Hardening Boot Resilience (fstab sanitization)..."
+if grep -q "$VAULT_MOUNT" /etc/fstab; then
+    echo "[*] Archival mount found in fstab. Applying 'nofail,noauto' logic..."
+    # Ensure nofail,noauto is present for the memories mount to prevent systemd from blocking boot
+    sed -i "s|\($VAULT_MOUNT.*\)defaults|\1defaults,nofail,noauto|g" /etc/fstab
+fi
 
 # 12. Systemd Service
 echo "[*] Installing Systemd Service..."
