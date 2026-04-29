@@ -1839,7 +1839,7 @@ async def revisit_specimen(id: int = None, type: str = "visual", path: str = Non
         result = None
         if id is not None:
             if type == "visual":
-                c.execute("SELECT id, img_path, description, note, owner_id, visibility, revision_count, hidden FROM image_cache WHERE id = ?", (id,))
+                c.execute("SELECT id, img_path, description, source_note, owner_id, visibility, revision_count, hidden FROM image_cache WHERE id = ?", (id,))
                 row = c.fetchone()
                 if row:
                     m_id, fpath, desc, note, o_id, vis, rev, hid = row
@@ -1854,13 +1854,18 @@ async def revisit_specimen(id: int = None, type: str = "visual", path: str = Non
                         "description": desc, "note": note, "owner_name": owner_name, "visibility": vis, "revision": rev, "hidden": hid
                     }
             else:
-                c.execute("SELECT id, source_file, content, owner_id, visibility, revision_count, thumbnail_path, hidden FROM writings WHERE id = ?", (id,))
+                c.execute("SELECT id, source_file, content, owner_id, visibility, revision_count, thumbnail_path, hidden, revision_note FROM writings WHERE id = ?", (id,))
                 row = c.fetchone()
                 if row:
-                    m_id, fpath, content, o_id, vis, rev, thumb, hid = row
+                    m_id, fpath, content, o_id, vis, rev, thumb, hid, note = row
                     c.execute("SELECT name FROM profiles WHERE id = ?", (o_id,))
                     o_row = c.fetchone()
                     owner_name = o_row[0] if o_row else "Archivist"
+                    result = {
+                        "id": m_id, "type": "textual" if not fpath.lower().endswith(('.mp4', '.m4a', '.wav', '.mov')) else "media",
+                        "path": fpath, "content": content, "description": content[:100] + "...", "note": note,
+                        "owner_name": owner_name, "visibility": vis, "revision": rev, "hidden": hid, "thumbnail": thumb
+                    }
                     if thumb and thumb.startswith("api/personal/thumbnail/"):
                         AUTHORIZED_THUMBNAILS.add(os.path.basename(thumb))
                     
@@ -2419,9 +2424,13 @@ async def find_alike(path: str = None, id: int = None, type: str = "visual", use
             
         conn.close()
         
-        # --- [v1.8.10] Reminiscence Synthesis (Oracle Pass) ---
+        # --- [v1.8.11] Reminiscence Synthesis (Oracle Pass) ---
         synthesis = ""
+        discovery_limit = random.randint(2, 5) # [v1.8.11] Variable density discovery
+        
         if related:
+            # Apply limit to discovery results
+            related = related[:discovery_limit]
             related_context = "\n".join([f"- {r['description']}" for r in related])
             prompt = (
                 f"You are the MemoryBox Reminiscence Engine. I have an anchor memory and several related archival records found via {strategy_label}.\n"
@@ -2432,15 +2441,15 @@ async def find_alike(path: str = None, id: int = None, type: str = "visual", use
             )
             
             try:
-                # [v1.8.10] Oracle Synthesis: 120s Timeout, 512 Tokens
-                async with httpx.AsyncClient(timeout=120.0) as client:
+                # [v1.8.11] Oracle Synthesis: 300s Timeout, 768 Tokens for deeper reflection
+                async with httpx.AsyncClient(timeout=300.0) as client:
                     response = await client.post(
                         OLLAMA_API_URL, 
                         json={
                             "model": ORACLE_MODEL, 
                             "prompt": prompt, 
                             "stream": False,
-                            "options": {"num_predict": 512, "temperature": 0.7}
+                            "options": {"num_predict": 768, "temperature": 0.7}
                         }
                     )
                     if response.status_code == 200:

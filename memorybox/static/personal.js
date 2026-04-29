@@ -1071,11 +1071,12 @@ async function triggerFindAlike(id, type = 'visual', path = null) {
                 for (const item of data.related) {
                     if (item.type === 'visual') {
                         const blobUrl = await secureImageFetch(item.url);
+                        const descSnippet = item.description && item.description !== item.mnemonic ? `<br/><span style="opacity:0.8;">${item.description.substring(0, 100)}...</span>` : "";
                         html += `<div class="archive-specimen" style="width:100%;">
                             <img src="${blobUrl}" style="width:100%; height:auto; border-radius:12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05);">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.3rem; padding: 0 0.5rem;">
-                                <p style="font-size:0.75rem; color:var(--text-dim); line-height:1.4;">${item.mnemonic || item.description || 'Raw Image'}</p>
-                                <button class="diag-btn mini" onclick="jumpToCurationBench(${item.id}, 'visual')" title="Open in Curation Bench">🔍</button>
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:0.6rem; padding: 0 0.5rem;">
+                                <p style="font-size:0.75rem; color:var(--text-dim); line-height:1.5;"><strong>${item.mnemonic || 'Visual Memory'}</strong>${descSnippet}</p>
+                                <button class="diag-btn mini" style="margin-top:2px;" onclick="jumpToCurationBench(${item.id}, 'visual')" title="Open in Curation Bench">🔍</button>
                             </div>
                         </div>`;
                     } else {
