@@ -70,6 +70,89 @@ echo "[*] Deploying MemoryBox logic..."
 mkdir -p "$APP_DIR"
 
 # Smart Detection: Look for 'memorybox' in current dir, parent dir, or script's dir
+echo "[*] Current Directory: \C:\Users\dan\.gemini\antigravity\scratch\MemoryBox_Appliance_v1.8"
+if [ ! -d "./memorybox" ]
+then
+    echo "[*] Source not found locally. Fetching from GitHub..."
+    rm -rf temp_install
+    git clone https://github.com/Fruzzetti/memorybox.git temp_install
+    cd temp_install || exit 1
+fi
+
+if [ -d "./memorybox" ]
+then
+#!/bin/bash
+# 🛸 MemoryBox Appliance Genesis Installer [v2.1.10]
+# Purpose: Zero-touch transformation of a fresh Ubuntu server into a MemoryBox Appliance.
+
+set -e
+
+# --- Configuration ---
+APP_USER="concierge"
+APP_DIR="/home/$APP_USER/memorybox"
+VAULT_MOUNT="/home/$APP_USER/memories"
+PORT=8001
+HOSTNAME="memorybox.local"
+
+echo "################################################"
+echo "# 🛸 MEMORYBOX APPLIANCE GENESIS INSTALLER      #"
+echo "################################################"
+
+# 1. Root Check
+if [ "$EUID" -ne 0 ]; then
+  echo "[!] Please run as root (sudo ./install_memorybox_appliance.sh)"
+  exit 1
+fi
+
+# 2. System Identity
+echo "[*] Setting system identity to $HOSTNAME..."
+hostnamectl set-hostname "$HOSTNAME"
+grep -q "$HOSTNAME" /etc/hosts || echo "127.0.0.1 $HOSTNAME" >> /etc/hosts
+
+# 2.5 Idempotency: Cleanup stale state before retry
+echo "[*] Cleaning up stale state (if any)..."
+systemctl stop memorybox || true
+umount "$VAULT_MOUNT" || true
+cryptsetup luksClose memories || true
+
+# 3. User Onboarding
+if id "$APP_USER" &>/dev/null; then
+    echo "[*] User $APP_USER already exists."
+else
+    echo "[*] Creating $APP_USER user..."
+    useradd -m -s /bin/bash "$APP_USER"
+    # Generate a random 24-character password
+    RAND_PASS=$(openssl rand -base64 24)
+    echo "$APP_USER:$RAND_PASS" | chpasswd
+    echo "[+] Secured $APP_USER with a unique random password."
+    usermod -aG sudo,disk "$APP_USER"
+fi
+
+# 4. Core Dependencies
+echo "[*] Waiting for other package managers to finish (checking for APT locks)..."
+while fuser /var/lib/apt/lists/lock >/dev/null 2>&1 ; do
+    echo "    [!] APT is locked by another process. Waiting 5 seconds..."
+    sleep 5
+done
+
+echo "[*] Installing core dependencies (this may take a few minutes)..."
+export DEBIAN_FRONTEND=noninteractive
+echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections
+echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
+apt-get update
+apt-get install -y python3-venv python3-pip ffmpeg cryptsetup iptables-persistent curl git nginx avahi-daemon
+
+# 5. Ollama Installation
+if ! command -v ollama &> /dev/null; then
+    echo "[*] Installing Ollama..."
+    curl -fsSL https://ollama.com/install.sh | sh
+fi
+
+# 6. App Deployment
+echo "[*] Deploying MemoryBox logic..."
+mkdir -p "$APP_DIR"
+
+# Smart Detection: Look for 'memorybox' in current dir, parent dir, or script's dir
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "./memorybox" ]; then
     SRC_DIR="./memorybox"
