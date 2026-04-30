@@ -71,11 +71,9 @@ mkdir -p "$APP_DIR"
 
 # Smart Detection: If we are running via wget/pipe, 'memorybox' won't exist locally.
 if [ ! -d "memorybox" ]; then
-    echo "[!] Source not found locally. Attempting Remote Archival Retrieval..."
-    TEMP_DIR=$(mktemp -d)
-    git clone https://github.com/Fruzzetti/memorybox.git "$TEMP_DIR"
-    cp -ar "$TEMP_DIR/memorybox/." "$APP_DIR/"
-    rm -rf "$TEMP_DIR"
+    echo "[!] Source not found locally. Attempting High-Speed Archival Retrieval (TGZ)..."
+    # [v1.8.12] Use the pre-packaged tarball for maximum installation speed
+    curl -L https://github.com/Fruzzetti/memorybox/raw/main/memorybox_v1.8.10.tgz | tar -xz -C "$APP_DIR" --strip-components=1
 else
     echo "[*] Copying logic from local repository..."
     cp -ar "memorybox/." "$APP_DIR/"
