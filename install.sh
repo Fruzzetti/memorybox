@@ -34,7 +34,8 @@ cryptsetup luksClose memories || true
 
 # 3. User Onboarding
 if id "$APP_USER" &>/dev/null; then
-    echo "[*] User $APP_USER already exists."
+    echo "[*] User $APP_USER already exists. Hardening existing account..."
+    usermod -aG sudo,disk "$APP_USER" || true
 else
     echo "[*] Creating $APP_USER user..."
     useradd -m -s /bin/bash "$APP_USER"
@@ -60,8 +61,8 @@ apt-get update
 apt-get install -y python3-venv python3-pip ffmpeg cryptsetup iptables-persistent curl git nginx avahi-daemon
 
 # 5. Ollama Installation
-if ! command -v ollama &> /dev/null || [ ! -f "/etc/systemd/system/ollama.service" ]; then
-    echo "[*] Installing Ollama (Binary or Service missing)..."
+if ! command -v ollama &> /dev/null; then
+    echo "[*] Installing Ollama..."
     curl -fsSL https://ollama.com/install.sh | sh
 fi
 
@@ -69,16 +70,21 @@ fi
 echo "[*] Deploying MemoryBox logic..."
 mkdir -p "$APP_DIR"
 
-# Smart Detection: If we are running via wget/pipe, 'memorybox' won't exist locally.
-if [ ! -d "memorybox" ]; then
-    echo "[!] Source not found locally. Attempting High-Speed Archival Retrieval (TGZ)..."
-    # [v1.8.12] Use the pre-packaged tarball for maximum installation speed
-    curl -L https://github.com/Fruzzetti/memorybox/raw/main/memorybox.tgz | tar -xz -C "$APP_DIR" --strip-components=1
+# Smart Detection: Look for 'memorybox' in current dir, parent dir, or script's dir
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "./memorybox" ]; then
+    SRC_DIR="./memorybox"
+elif [ -d "../memorybox" ]; then
+    SRC_DIR="../memorybox"
+elif [ -d "$SCRIPT_DIR/../memorybox" ]; then
+    SRC_DIR="$SCRIPT_DIR/../memorybox"
 else
-    echo "[*] Copying logic from local repository..."
-    cp -ar "memorybox/." "$APP_DIR/"
+    echo "[!] Error: 'memorybox' source folder not found."
+    exit 1
 fi
 
+echo "[*] Copying logic from $SRC_DIR to $APP_DIR..."
+cp -ar "$SRC_DIR/." "$APP_DIR/"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 chmod -R 755 "$APP_DIR/static"
 
@@ -95,14 +101,14 @@ lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS | grep -v "loop"
 echo ""
 echo "1) Use a dedicated block device (e.g. /dev/sdb1)"
 echo "2) Create a 20GB Portable Vault File (Recommended for VMs)"
-read -p "[?] Select storage mode [1/2]: " VAULT_MODE < /dev/tty
+read -p "[?] Select storage mode [1/2]: " VAULT_MODE
 
 mkdir -p "$VAULT_MOUNT"
 chown "$APP_USER:$APP_USER" "$VAULT_MOUNT"
 
 if [ "$VAULT_MODE" == "1" ]; then
     while true; do
-        read -p "[?] Enter block device path (e.g. /dev/sdc1): " VAULT_DEV < /dev/tty
+        read -p "[?] Enter block device path (e.g. /dev/sdc1): " VAULT_DEV
         if [ ! -b "$VAULT_DEV" ]; then
             echo "[!] Error: '$VAULT_DEV' is not a valid block device."
             continue
@@ -118,7 +124,7 @@ if [ "$VAULT_MODE" == "1" ]; then
             echo "[!] ALERT: This device is currently MOUNTED."
         fi
         echo ""
-        read -p "[?] Type YES to continue or NO to go back: " CONFIRM < /dev/tty
+        read -p "[?] Type YES to continue or NO to go back: " CONFIRM
         if [ "$CONFIRM" == "YES" ]; then
             VAULT_SOURCE="$VAULT_DEV"
             break
@@ -126,7 +132,7 @@ if [ "$VAULT_MODE" == "1" ]; then
             echo "[*] Aborting selection. Returning to storage menu..."
             echo "1) Use a dedicated block device (e.g. /dev/sdb1)"
             echo "2) Create a 20GB Portable Vault File (Recommended for VMs)"
-            read -p "[?] Select storage mode [1/2]: " VAULT_MODE < /dev/tty
+            read -p "[?] Select storage mode [1/2]: " VAULT_MODE
             if [ "$VAULT_MODE" != "1" ]; then
                 VAULT_SOURCE="/home/$APP_USER/vault.img"
                 if [ ! -f "$VAULT_SOURCE" ]; then
@@ -245,6 +251,27 @@ EOF
 systemctl daemon-reload
 systemctl enable memorybox
 systemctl restart memorybox
+
+# 12.5 Routing Guardian (v1.9 Roadmap - DORMANT)
+# echo "[*] Installing Routing Guardian Service..."
+# tee /etc/systemd/system/memorybox-guardian.service <<EOF
+# [Unit]
+# Description=MemoryBox Routing Guardian
+# After=network.target
+# 
+# [Service]
+# User=root
+# WorkingDirectory=$APP_DIR
+# ExecStart=$APP_DIR/venv/bin/python3 scripts/routing_guardian.py
+# Restart=always
+# RestartSec=10
+# 
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+# 
+# systemctl daemon-reload
+# systemctl enable memorybox-guardian
 
 # 13. Service Health Check
 echo "[*] Waiting for MemoryBox service to bind to Port $PORT..."
