@@ -73,7 +73,7 @@ mkdir -p "$APP_DIR"
 if [ ! -d "memorybox" ]; then
     echo "[!] Source not found locally. Attempting High-Speed Archival Retrieval (TGZ)..."
     # [v1.8.12] Use the pre-packaged tarball for maximum installation speed
-    curl -L https://github.com/Fruzzetti/memorybox/raw/main/memorybox_v1.8.10.tgz | tar -xz -C "$APP_DIR" --strip-components=1
+    curl -L https://github.com/Fruzzetti/memorybox/raw/main/memorybox.tgz | tar -xz -C "$APP_DIR" --strip-components=1
 else
     echo "[*] Copying logic from local repository..."
     cp -ar "memorybox/." "$APP_DIR/"
