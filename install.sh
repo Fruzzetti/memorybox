@@ -73,18 +73,35 @@ mkdir -p "$APP_DIR"
 # Smart Detection: Look for 'memorybox' in current dir, parent dir, or script's dir
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "./memorybox" ]; then
-    SRC_DIR="./memorybox"
+    SRC_DIR="$(pwd)/memorybox"
 elif [ -d "../memorybox" ]; then
-    SRC_DIR="../memorybox"
+    SRC_DIR="$(cd .. && pwd)/memorybox"
 elif [ -d "$SCRIPT_DIR/../memorybox" ]; then
-    SRC_DIR="$SCRIPT_DIR/../memorybox"
+    SRC_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/memorybox"
+elif [ -f "./memorybox.tgz" ]; then
+    echo "[*] memorybox.tgz detected. Unpacking payload..."
+    tar -xzf ./memorybox.tgz
+    SRC_DIR="$(pwd)/memorybox"
 else
-    echo "[!] Error: 'memorybox' source folder not found."
-    exit 1
+    echo "[*] Source folder not found. Attempting autonomous payload retrieval..."
+    # [v1.8.12] One-Liner Support: Pull the latest harmonized payload from GitHub
+    curl -L -o /tmp/memorybox.tgz https://github.com/Fruzzetti/memorybox/raw/main/memorybox.tgz
+    mkdir -p /tmp/mb_unpack
+    tar -xzf /tmp/memorybox.tgz -C /tmp/mb_unpack
+    SRC_DIR="/tmp/mb_unpack/memorybox"
+    
+    if [ ! -d "$SRC_DIR" ]; then
+        echo "[!] Error: 'memorybox' source folder could not be retrieved."
+        exit 1
+    fi
 fi
 
-echo "[*] Copying logic from $SRC_DIR to $APP_DIR..."
-cp -ar "$SRC_DIR/." "$APP_DIR/"
+if [ "$SRC_DIR" == "$APP_DIR" ]; then
+    echo "[*] Source and Destination are identical. Skipping logic copy."
+else
+    echo "[*] Copying logic from $SRC_DIR to $APP_DIR..."
+    cp -ar "$SRC_DIR/." "$APP_DIR/"
+fi
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 chmod -R 755 "$APP_DIR/static"
 
