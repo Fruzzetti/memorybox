@@ -118,14 +118,14 @@ lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS | grep -v "loop"
 echo ""
 echo "1) Use a dedicated block device (e.g. /dev/sdb1)"
 echo "2) Create a 20GB Portable Vault File (Recommended for VMs)"
-read -p "[?] Select storage mode [1/2]: " VAULT_MODE
+read -p "[?] Select storage mode [1/2]: " VAULT_MODE < /dev/tty
 
 mkdir -p "$VAULT_MOUNT"
 chown "$APP_USER:$APP_USER" "$VAULT_MOUNT"
 
 if [ "$VAULT_MODE" == "1" ]; then
     while true; do
-        read -p "[?] Enter block device path (e.g. /dev/sdc1): " VAULT_DEV
+        read -p "[?] Enter block device path (e.g. /dev/sdc1): " VAULT_DEV < /dev/tty
         if [ ! -b "$VAULT_DEV" ]; then
             echo "[!] Error: '$VAULT_DEV' is not a valid block device."
             continue
@@ -141,7 +141,7 @@ if [ "$VAULT_MODE" == "1" ]; then
             echo "[!] ALERT: This device is currently MOUNTED."
         fi
         echo ""
-        read -p "[?] Type YES to continue or NO to go back: " CONFIRM
+        read -p "[?] Type YES to continue or NO to go back: " CONFIRM < /dev/tty
         if [ "$CONFIRM" == "YES" ]; then
             VAULT_SOURCE="$VAULT_DEV"
             break
@@ -149,7 +149,7 @@ if [ "$VAULT_MODE" == "1" ]; then
             echo "[*] Aborting selection. Returning to storage menu..."
             echo "1) Use a dedicated block device (e.g. /dev/sdb1)"
             echo "2) Create a 20GB Portable Vault File (Recommended for VMs)"
-            read -p "[?] Select storage mode [1/2]: " VAULT_MODE
+            read -p "[?] Select storage mode [1/2]: " VAULT_MODE < /dev/tty
             if [ "$VAULT_MODE" != "1" ]; then
                 VAULT_SOURCE="/home/$APP_USER/vault.img"
                 if [ ! -f "$VAULT_SOURCE" ]; then
