@@ -60,8 +60,8 @@ apt-get update
 apt-get install -y python3-venv python3-pip ffmpeg cryptsetup iptables-persistent curl git nginx avahi-daemon
 
 # 5. Ollama Installation
-if ! command -v ollama &> /dev/null; then
-    echo "[*] Installing Ollama..."
+if ! command -v ollama &> /dev/null || [ ! -f "/etc/systemd/system/ollama.service" ]; then
+    echo "[*] Installing Ollama (Binary or Service missing)..."
     curl -fsSL https://ollama.com/install.sh | sh
 fi
 
