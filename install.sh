@@ -222,8 +222,9 @@ chmod 644 "$APP_DIR/nginx_memorybox.conf"
 NGINX_CONF="/etc/nginx/sites-available/memorybox"
 cat > "$NGINX_CONF" <<EOF
 server {
-    listen 80;
-    server_name $HOSTNAME;
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
     include $APP_DIR/nginx_memorybox.conf;
     location / { return 301 /memorybox/; }
 }
