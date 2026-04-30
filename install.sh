@@ -69,21 +69,18 @@ fi
 echo "[*] Deploying MemoryBox logic..."
 mkdir -p "$APP_DIR"
 
-# Smart Detection: Look for 'memorybox' in current dir, parent dir, or script's dir
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -d "./memorybox" ]; then
-    SRC_DIR="./memorybox"
-elif [ -d "../memorybox" ]; then
-    SRC_DIR="../memorybox"
-elif [ -d "$SCRIPT_DIR/../memorybox" ]; then
-    SRC_DIR="$SCRIPT_DIR/../memorybox"
+# Smart Detection: If we are running via wget/pipe, 'memorybox' won't exist locally.
+if [ ! -d "memorybox" ]; then
+    echo "[!] Source not found locally. Attempting Remote Archival Retrieval..."
+    TEMP_DIR=$(mktemp -d)
+    git clone https://github.com/Fruzzetti/memorybox.git "$TEMP_DIR"
+    cp -ar "$TEMP_DIR/memorybox/." "$APP_DIR/"
+    rm -rf "$TEMP_DIR"
 else
-    echo "[!] Error: 'memorybox' source folder not found."
-    exit 1
+    echo "[*] Copying logic from local repository..."
+    cp -ar "memorybox/." "$APP_DIR/"
 fi
 
-echo "[*] Copying logic from $SRC_DIR to $APP_DIR..."
-cp -ar "$SRC_DIR/." "$APP_DIR/"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 chmod -R 755 "$APP_DIR/static"
 
