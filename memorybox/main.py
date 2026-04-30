@@ -1297,7 +1297,7 @@ def get_personal_context(query: str, current_user_id: int = 0, super_admin_mode:
         fts_query = " OR ".join([f'"{k}*"' for k in fts_query.split() if len(k) > 2]) or clean_query
         
         sql = f"""
-            SELECT w.id, w.content, w.author, w.recipient, w.timestamp, w.source_file, w.doc_type 
+            SELECT w.id, w.content, w.author, w.recipient, w.timestamp, w.source_file, w.doc_type, w.is_revision 
             FROM writings w 
             JOIN writings_fts f ON w.id = f.content_id 
             WHERE writings_fts MATCH ? AND {view_filter}
@@ -1310,7 +1310,7 @@ def get_personal_context(query: str, current_user_id: int = 0, super_admin_mode:
         rows = c.fetchall()
         text_context = []
         for row in rows:
-            rid, content, author, recipient, ts, source, dtype = row
+            rid, content, author, recipient, ts, source, dtype, is_rev = row
             decrypted = decrypt_content(content)
             
             # [v1.8.0] Mnemonic Identification
@@ -1321,7 +1321,9 @@ def get_personal_context(query: str, current_user_id: int = 0, super_admin_mode:
                  m_label = "Media Memory - Transcribed"
             
             mnemonic = f"[{m_label}: #{rid} ({date_str})]"
-            text_context.append(f"{mnemonic}:\n{decrypted}\n")
+            text_context.append({"id": rid, "mnemonic": mnemonic, "content": decrypted, "type": "text", "is_revision": is_rev, "description": decrypted[:200]})
+            # [v1.8.0] Legacy string format for LLM context
+            # text_context_str.append(f"{mnemonic}:\n{decrypted}\n")
         
         # 2. Search Images
         img_keywords = [k for k in re.sub(r'[^\w\s]', ' ', clean_query).lower().split() if len(k) > 2]
@@ -1330,23 +1332,17 @@ def get_personal_context(query: str, current_user_id: int = 0, super_admin_mode:
         # [v1.2.0] Aggressive Search using Image FTS (Prefix-Matching)
         if img_keywords:
             try:
-                fts_img_query = " OR ".join([f'"{k}*"' for k in img_keywords])
-                c.execute("SELECT id, content_id FROM image_cache_fts WHERE image_cache_fts MATCH ?", (fts_img_query,))
-                res = c.fetchall()
-                ids = [r[1] for r in res]
-                if ids:
-                    placeholders = ",".join(["?" for _ in ids])
-                    c.execute(f"SELECT id, img_path, description, fs_mtime FROM image_cache WHERE id IN ({placeholders}) AND {view_filter} LIMIT 12", ids)
+                    c.execute(f"SELECT id, img_path, description, fs_mtime, revision_count FROM image_cache WHERE id IN ({placeholders}) AND {view_filter} LIMIT 12", ids)
                     img_rows = c.fetchall()
             except Exception as e:
                 logger.warning(f"Aggressive Image search failed: {e}")
                 conditions = " OR ".join(["description LIKE ?" for _ in img_keywords])
                 params = [f"%{k}%" for k in img_keywords]
-                c.execute(f"SELECT id, img_path, description, fs_mtime FROM image_cache WHERE ({conditions}) AND {view_filter} LIMIT 12", params)
+                c.execute(f"SELECT id, img_path, description, fs_mtime, revision_count FROM image_cache WHERE ({conditions}) AND {view_filter} LIMIT 12", params)
                 img_rows = c.fetchall()
 
         img_context = []
-        for rid, path, desc, rts in img_rows:
+        for rid, path, desc, rts, rev_count in img_rows:
             # [v1.2.0] Retrieve user note for grounding
             c.execute("SELECT source_note FROM image_cache WHERE id = ?", (rid,))
             note_row = c.fetchone()
@@ -1361,16 +1357,15 @@ def get_personal_context(query: str, current_user_id: int = 0, super_admin_mode:
                         break
             mnemonic = f"Visual Memory: #{rid} from {location} ({date_str})"
             
-            img_context.append({"id": rid, "mnemonic": mnemonic, "description": desc, "note": note})
-            text_context.append(f"[{mnemonic}]: {desc} (Archivist Note: {note or 'None'})")
+            img_context.append({"id": rid, "mnemonic": mnemonic, "description": desc, "note": note, "type": "visual", "url": f"api/personal/media/id/{rid}", "revision_count": rev_count})
+            # text_context.append(f"[{mnemonic}]: {desc} (Archivist Note: {note or 'None'})")
             AUTHORIZED_PERSONAL_IMAGES.add(str(rid))
 
 
         conn.close()
         return {
-            "text": "\n---\n".join(text_context),
-            "image_count": len(img_context),
-            "images": img_context
+            "status": "success",
+            "related": img_context + text_context
         }
     except Exception as e:
         logger.error(f"Personal Context Error: {e}")

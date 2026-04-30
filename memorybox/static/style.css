@@ -1727,3 +1727,37 @@ body.theme-botanical .sensing-dot { background: #83c5be; box-shadow: 0 0 10px #8
 .media-recall-placeholder:hover .recall-icon {
     transform: scale(1.1) rotate(5deg);
 }
+/* [v1.8.12] Unverified Badge Architecture */
+.unverified-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(245, 158, 11, 0.2); /* Amber 500 equivalent */
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #f59e0b;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    z-index: 5;
+    pointer-events: none;
+    animation: pulseGlow 3s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.4); }
+    50% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); border-color: rgba(245, 158, 11, 0.7); }
+    100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.4); }
+}
+
+.archive-specimen {
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.archive-specimen:hover {
+    transform: translateY(-4px);
+}

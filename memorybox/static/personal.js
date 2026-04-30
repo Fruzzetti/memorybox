@@ -1072,7 +1072,9 @@ async function triggerFindAlike(id, type = 'visual', path = null) {
                     if (item.type === 'visual') {
                         const blobUrl = await secureImageFetch(item.url);
                         const descSnippet = item.description && item.description !== item.mnemonic ? `<br/><span style="opacity:0.8;">${item.description.substring(0, 100)}...</span>` : "";
+                        const unverifiedBadge = (item.revision_count === 0) ? `<div class="unverified-badge">Awaiting Curation</div>` : "";
                         html += `<div class="archive-specimen" style="width:100%;">
+                            ${unverifiedBadge}
                             <img src="${blobUrl}" style="width:100%; height:auto; border-radius:12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05);">
                             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:0.6rem; padding: 0 0.5rem;">
                                 <p style="font-size:0.75rem; color:var(--text-dim); line-height:1.5;"><strong>${item.mnemonic || 'Visual Memory'}</strong>${descSnippet}</p>
@@ -1084,7 +1086,9 @@ async function triggerFindAlike(id, type = 'visual', path = null) {
                         const title = item.type === 'media' ? 'Media Memory' : 'Archival Writing';
                         const accent = item.type === 'media' ? 'var(--accent-secondary)' : 'var(--accent-primary)';
                         
+                        const unverifiedBadge = (item.is_revision === 0) ? `<div class="unverified-badge">Awaiting Curation</div>` : "";
                         html += `<div class="archive-specimen textual-card" style="width:100%; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 12px; border-left: 3px solid ${accent};">
+                            ${unverifiedBadge}
                             <div style="font-size:0.7rem; color:${accent}; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem;">${title}</div>
                             <p style="font-size:0.85rem; color:var(--text-main); margin-bottom:0.8rem; font-family: 'Outfit', sans-serif;">"${(item.content || "").substring(0, 150)}..."</p>
                             <div style="display:flex; justify-content:space-between; align-items:center;">
