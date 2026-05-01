@@ -1,5 +1,5 @@
 #!/bin/bash
-# 🛸 MemoryBox Appliance Genesis Installer [v2.1.10]
+# 🛸 MemoryBox Appliance Genesis Installer [v2.2.5]
 # Purpose: Zero-touch transformation of a fresh Ubuntu server into a MemoryBox Appliance.
 
 set -e
@@ -46,7 +46,23 @@ else
     usermod -aG sudo,disk "$APP_USER"
 fi
 
-# 4. Core Dependencies
+# 4. Binary Path Discovery
+echo "[*] Discovering system binaries..."
+CRYPTSETUP_PATH="/usr/sbin/cryptsetup"
+MKFS_PATH="/usr/sbin/mkfs.ext4"
+MOUNT_PATH="/usr/bin/mount"
+UMOUNT_PATH="/usr/bin/umount"
+MKDIR_PATH="/usr/bin/mkdir"
+CHOWN_PATH="/usr/bin/chown"
+SYSTEMCTL_PATH="/usr/bin/systemctl"
+RM_PATH="/usr/bin/rm"
+FALLOCATE_PATH="/usr/bin/fallocate"
+
+# Fallback/Auto-detection
+[ ! -f "$CRYPTSETUP_PATH" ] && CRYPTSETUP_PATH=$(which cryptsetup)
+[ ! -f "$MKFS_PATH" ] && MKFS_PATH=$(which mkfs.ext4)
+
+# 5. Core Dependencies
 echo "[*] Waiting for other package managers to finish (checking for APT locks)..."
 while fuser /var/lib/apt/lists/lock >/dev/null 2>&1 ; do
     echo "    [!] APT is locked by another process. Waiting 5 seconds..."
@@ -59,12 +75,6 @@ echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debcon
 echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
 apt-get update
 apt-get install -y python3-venv python3-pip ffmpeg cryptsetup iptables-persistent curl git nginx avahi-daemon
-
-# 5. Ollama Installation
-if ! command -v ollama &> /dev/null; then
-    echo "[*] Installing Ollama..."
-    curl -fsSL https://ollama.com/install.sh | sh
-fi
 
 # 6. App Deployment
 echo "[*] Deploying MemoryBox logic..."
@@ -84,7 +94,6 @@ elif [ -f "./memorybox.tgz" ]; then
     SRC_DIR="$(pwd)/memorybox"
 else
     echo "[*] Source folder not found. Attempting autonomous payload retrieval..."
-    # [v1.8.12] One-Liner Support: Pull the latest harmonized payload from GitHub
     curl -L -o /tmp/memorybox.tgz https://github.com/Fruzzetti/memorybox/raw/main/memorybox.tgz
     mkdir -p /tmp/mb_unpack
     tar -xzf /tmp/memorybox.tgz -C /tmp/mb_unpack
@@ -111,9 +120,9 @@ sudo -u "$APP_USER" python3 -m venv "$APP_DIR/venv"
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install --upgrade pip
 sudo -u "$APP_USER" "$APP_DIR/venv/bin/pip" install fastapi uvicorn[standard] jinja2 httpx psutil faster-whisper requests python-multipart pillow pillow-heif aiofiles
 
-# 8. Storage Engine (Vault Provisioning)
+# 8. Storage Engine (Selection Only)
 echo "------------------------------------------------"
-echo "STORAGE PROVISIONING"
+echo "STORAGE SELECTION"
 lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS | grep -v "loop"
 echo ""
 echo "1) Use a dedicated block device (e.g. /dev/sdb1)"
@@ -135,20 +144,18 @@ if [ "$VAULT_MODE" == "1" ]; then
         echo "!!! WARNING: DATA DESTRUCTION IMMINENT       !!!"
         echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         echo "The device $VAULT_DEV will be COMPLETELY ERASED"
-        echo "to create your MemoryBox private archive."
+        echo "during the Web UI initialization step."
         
         if mount | grep -q "$VAULT_DEV"; then
             echo "[!] ALERT: This device is currently MOUNTED."
         fi
         echo ""
-        read -p "[?] Type YES to continue or NO to go back: " CONFIRM < /dev/tty
+        read -p "[?] Type YES to confirm device selection: " CONFIRM < /dev/tty
         if [ "$CONFIRM" == "YES" ]; then
             VAULT_SOURCE="$VAULT_DEV"
             break
         else
             echo "[*] Aborting selection. Returning to storage menu..."
-            echo "1) Use a dedicated block device (e.g. /dev/sdb1)"
-            echo "2) Create a 20GB Portable Vault File (Recommended for VMs)"
             read -p "[?] Select storage mode [1/2]: " VAULT_MODE < /dev/tty
             if [ "$VAULT_MODE" != "1" ]; then
                 VAULT_SOURCE="/home/$APP_USER/vault.img"
@@ -156,7 +163,6 @@ if [ "$VAULT_MODE" == "1" ]; then
                     echo "[*] Creating 20GB Portable Vault file..."
                     fallocate -l 20G "$VAULT_SOURCE"
                     chown "$APP_USER:$APP_USER" "$VAULT_SOURCE"
-                    modprobe loop || true
                 fi
                 break
             fi
@@ -172,28 +178,12 @@ else
     fi
 fi
 
-# 9. Sudoers & Path Hardening
+# 9. Sudoers & Logic Configuration
 echo "[*] Hardening Sudoers for $APP_USER..."
 
-# Verified Binary Locations
-CRYPTSETUP_PATH="/usr/sbin/cryptsetup"
-MKFS_PATH="/usr/sbin/mkfs.ext4"
-MOUNT_PATH="/usr/bin/mount"
-UMOUNT_PATH="/usr/bin/umount"
-MKDIR_PATH="/usr/bin/mkdir"
-CHOWN_PATH="/usr/bin/chown"
-SYSTEMCTL_PATH="/usr/bin/systemctl"
-RM_PATH="/usr/bin/rm"
-
-# Fallback if standard paths missing
-[ ! -f "$CRYPTSETUP_PATH" ] && CRYPTSETUP_PATH=$(which cryptsetup)
-[ ! -f "$MKFS_PATH" ] && MKFS_PATH=$(which mkfs.ext4)
-
-# Verification: Abort if binaries missing (prevents empty paths in main.py)
-if [ -z "$CRYPTSETUP_PATH" ] || [ -z "$MKFS_PATH" ]; then
-    echo "[!] ERROR: Critical binaries (cryptsetup/mkfs) not found!"
-    exit 1
-fi
+# Re-verify binary paths
+[ -z "$CRYPTSETUP_PATH" ] && CRYPTSETUP_PATH=$(which cryptsetup)
+[ -z "$MKFS_PATH" ] && MKFS_PATH=$(which mkfs.ext4)
 
 # Update main.py logic
 sed -i "s|VAULT_TYPE = .*|VAULT_TYPE = \"LUKS\"|g" "$APP_DIR/main.py"
@@ -201,7 +191,7 @@ sed -i "s|VAULT_SOURCE = .*|VAULT_SOURCE = \"$VAULT_SOURCE\"|g" "$APP_DIR/main.p
 sed -i "s|VAULT_DEVICE = .*|VAULT_DEVICE = \"/dev/mapper/memories\"|g" "$APP_DIR/main.py"
 sed -i "s|port=[0-9]*|port=$PORT|g" "$APP_DIR/main.py"
 
-# Inject paths into main.py for strict sudoers matching
+# Inject paths into main.py
 sed -i "s|/usr/sbin/cryptsetup|$CRYPTSETUP_PATH|g" "$APP_DIR/main.py"
 sed -i "s|/usr/sbin/mkfs.ext4|$MKFS_PATH|g" "$APP_DIR/main.py"
 sed -i "s|/usr/bin/mount|$MOUNT_PATH|g" "$APP_DIR/main.py"
@@ -225,24 +215,43 @@ server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
-    include $APP_DIR/nginx_memorybox.conf;
-    location / { return 301 /memorybox/; }
+
+    location / {
+        return 301 /memorybox/;
+    }
+
+    location /memorybox/static/ {
+        alias /home/concierge/memorybox/static/;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+
+    location /memorybox/ {
+        proxy_pass http://127.0.0.1:8001/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
 }
 EOF
 ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/memorybox
 rm -f /etc/nginx/sites-enabled/default
-nginx -t && systemctl restart nginx
+systemctl restart nginx
 
 # 11. mDNS Discovery (Avahi)
 systemctl enable avahi-daemon
 systemctl restart avahi-daemon
 
-# 11.5 Boot Resilience (v1.8.11)
-# Ensure the archival mount doesn't hang the system boot if the drive is missing
-echo "[*] Hardening Boot Resilience (fstab sanitization)..."
+# 11.5 Boot Resilience
+echo "[*] Hardening Boot Resilience..."
 if grep -q "$VAULT_MOUNT" /etc/fstab; then
-    echo "[*] Archival mount found in fstab. Applying 'nofail,noauto' logic..."
-    # Ensure nofail,noauto is present for the memories mount to prevent systemd from blocking boot
     sed -i "s|\($VAULT_MOUNT.*\)defaults|\1defaults,nofail,noauto|g" /etc/fstab
 fi
 
@@ -270,28 +279,16 @@ systemctl daemon-reload
 systemctl enable memorybox
 systemctl restart memorybox
 
-# 12.5 Routing Guardian (v1.9 Roadmap - DORMANT)
-# echo "[*] Installing Routing Guardian Service..."
-# tee /etc/systemd/system/memorybox-guardian.service <<EOF
-# [Unit]
-# Description=MemoryBox Routing Guardian
-# After=network.target
-# 
-# [Service]
-# User=root
-# WorkingDirectory=$APP_DIR
-# ExecStart=$APP_DIR/venv/bin/python3 scripts/routing_guardian.py
-# Restart=always
-# RestartSec=10
-# 
-# [Install]
-# WantedBy=multi-user.target
-# EOF
-# 
-# systemctl daemon-reload
-# systemctl enable memorybox-guardian
+# 13. AI Engine Warm-up
+if ! command -v ollama &> /dev/null; then
+    echo "[*] Installing Ollama..."
+    curl -fsSL https://ollama.com/install.sh | sh
+fi
+echo "[*] Pre-loading AI Models (Mistral & Moondream)..."
+ollama pull mistral
+ollama pull moondream
 
-# 13. Service Health Check
+# 14. Service Health Check
 echo "[*] Waiting for MemoryBox service to bind to Port $PORT..."
 for i in {1..15}; do
     if curl -s "http://127.0.0.1:$PORT/api/vault/status" > /dev/null; then
@@ -303,22 +300,12 @@ for i in {1..15}; do
     sleep 3
 done
 
-if [ "$HEALTHY" != "true" ]; then
-    echo "[!] ERROR: Service failed to respond within 45 seconds."
-    echo "------------------------------------------------"
-    echo "DIAGNOSTIC DUMP: journalctl logs"
-    journalctl -u memorybox --no-pager -n 50
-    exit 1
-fi
-
-# 14. Model Warm-up (Background)
-echo "[*] Waking AI Engines..."
-ollama pull mistral &
-ollama pull moondream &
-
 echo "################################################"
 echo "# 🚀 INSTALLATION COMPLETE                     #"
 echo "################################################"
 echo "Access the portal at: http://$HOSTNAME/memorybox/"
 echo "Vault Source: $VAULT_SOURCE"
+echo "################################################"
+echo "Next Step: Open the portal in your browser to generate"
+echo "your Appliance Key and initialize your private archive."
 echo "################################################"
