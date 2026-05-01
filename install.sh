@@ -1,5 +1,5 @@
 #!/bin/bash
-# 🛸 MemoryBox Appliance Genesis Installer [v2.2.5]
+# 🛸 MemoryBox Appliance Genesis Installer [v2.2.6]
 # Purpose: Zero-touch transformation of a fresh Ubuntu server into a MemoryBox Appliance.
 
 set -e
