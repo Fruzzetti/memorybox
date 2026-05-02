@@ -286,6 +286,19 @@ if ! command -v ollama &> /dev/null; then
     echo "[*] Installing Ollama..."
     curl -fsSL https://ollama.com/install.sh | sh
 fi
+
+# [v2.2.19] AI Engine Patience Loop: Wait for Ollama to wake up
+echo "[*] Waiting for Ollama server to initialize..."
+for i in {1..10}; do
+    if curl -s http://127.0.0.1:11434/api/tags > /dev/null; then
+        echo "    [+] AI Engine is awake."
+        READY=true
+        break
+    fi
+    echo "    [!] AI Engine still sleeping... (Attempt $i/10)"
+    sleep 3
+done
+
 echo "[*] Pre-loading AI Models (Mistral & Moondream)..."
 ollama pull mistral
 ollama pull moondream
