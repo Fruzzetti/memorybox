@@ -92,6 +92,8 @@ elif [ -f "./memorybox.tgz" ]; then
     echo "[*] memorybox.tgz detected. Unpacking payload..."
     tar -xzf ./memorybox.tgz
     SRC_DIR="$(pwd)/memorybox"
+    # [v2.2.19] Genesis Guard: Ensure any bundled developer locks are purged for the new installation
+    rm -f "$SRC_DIR/.setup_lock"
 else
     echo "[*] Source folder not found. Attempting autonomous payload retrieval..."
     curl -L -o /tmp/memorybox.tgz https://github.com/Fruzzetti/memorybox/raw/main/memorybox.tgz
