@@ -61,8 +61,12 @@ FALLOCATE_PATH=$(which fallocate || echo "/usr/bin/fallocate")
 VGS_PATH=$(which vgs || echo "/usr/sbin/vgs")
 LVS_PATH=$(which lvs || echo "/usr/sbin/lvs")
 LVCREATE_PATH=$(which lvcreate || echo "/usr/sbin/lvcreate")
+WIPEFS_PATH=$(which wipefs || echo "/usr/sbin/wipefs")
+PARTPROBE_PATH=$(which partprobe || echo "/usr/sbin/partprobe")
+LSBLK_PATH=$(which lsblk || echo "/usr/bin/lsblk")
 
 # 5. Core Dependencies
+# ... (rest of step 5) ...
 echo "[*] Waiting for other package managers to finish (checking for APT locks)..."
 while fuser /var/lib/apt/lists/lock >/dev/null 2>&1 ; do
     echo "    [!] APT is locked by another process. Waiting 5 seconds..."
@@ -179,12 +183,15 @@ sed -i "s|/usr/sbin/cryptsetup|$CRYPTSETUP_PATH|g" "$APP_DIR/main.py"
 sed -i "s|/usr/sbin/mkfs.ext4|$MKFS_PATH|g" "$APP_DIR/main.py"
 sed -i "s|/usr/bin/mount|$MOUNT_PATH|g" "$APP_DIR/main.py"
 sed -i "s|/usr/bin/umount|$UMOUNT_PATH|g" "$APP_DIR/main.py"
+sed -i "s|/usr/sbin/wipefs|$WIPEFS_PATH|g" "$APP_DIR/main.py"
+sed -i "s|/usr/sbin/partprobe|$PARTPROBE_PATH|g" "$APP_DIR/main.py"
+sed -i "s|/usr/bin/lsblk|$LSBLK_PATH|g" "$APP_DIR/main.py"
 
 # Sudoers hardening
 SUDOERS_FILE="/etc/sudoers.d/memorybox-appliance"
 tee "$SUDOERS_FILE" <<EOF
 Defaults:$APP_USER !requiretty
-$APP_USER ALL=(ALL) NOPASSWD: $CRYPTSETUP_PATH *, $MKFS_PATH *, $MOUNT_PATH *, $UMOUNT_PATH *, $MKDIR_PATH *, $CHOWN_PATH *, $RM_PATH *, $SYSTEMCTL_PATH *
+$APP_USER ALL=(ALL) NOPASSWD: $CRYPTSETUP_PATH *, $MKFS_PATH *, $MOUNT_PATH *, $UMOUNT_PATH *, $MKDIR_PATH *, $CHOWN_PATH *, $RM_PATH *, $SYSTEMCTL_PATH *, $WIPEFS_PATH *, $PARTPROBE_PATH *, $LSBLK_PATH *
 EOF
 chmod 0440 "$SUDOERS_FILE"
 
