@@ -79,78 +79,68 @@ echo "------------------------------------------------"
 echo "STORAGE PROVISIONING"
 echo "------------------------------------------------"
 
+# 6. Storage Provisioning (Configuration Only)
+echo "------------------------------------------------"
+echo "STORAGE SELECTION"
+echo "------------------------------------------------"
+lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS | grep -v "loop"
+echo ""
+echo "1) Use a dedicated block device (e.g. /dev/sdb1)"
+echo "2) Create a 20GB Portable Vault File (Recommended for VMs)"
+echo "3) Automate LVM Provisioning (Standard Beelink /dev/ubuntu-vg/private)"
+read -p "[?] Select storage mode [1/2/3]: " VAULT_MODE < /dev/tty
+
 VAULT_SOURCE=""
 
-# Check for LVM Group (Standard Beelink Ubuntu Install)
-if [ -x "$VGS_PATH" ]; then
-    VG_NAME=$($VGS_PATH --noheadings -o vg_name | xargs | grep -o "ubuntu-vg" || echo "")
-    if [ -n "$VG_NAME" ]; then
-        echo "[+] LVM Volume Group '$VG_NAME' detected."
-        if $LVS_PATH "$VG_NAME/private" &>/dev/null; then
-            echo "[*] Existing 'private' Logical Volume found."
-            VAULT_SOURCE="/dev/$VG_NAME/private"
-        else
-            echo "[?] Would you like to create a 40GB 'private' LV for the vault?"
-            read -p "[?] Create LVM volume? (y/n): " DO_LVM < /dev/tty
-            if [ "$DO_LVM" == "y" ]; then
+if [ "$VAULT_MODE" == "3" ]; then
+    if [ -x "$VGS_PATH" ]; then
+        VG_NAME=$($VGS_PATH --noheadings -o vg_name | xargs | grep -o "ubuntu-vg" || echo "")
+        if [ -n "$VG_NAME" ]; then
+            echo "[+] LVM Volume Group '$VG_NAME' detected."
+            if $LVS_PATH "$VG_NAME/private" &>/dev/null; then
+                echo "[*] Existing 'private' Logical Volume found."
+                VAULT_SOURCE="/dev/$VG_NAME/private"
+            else
                 echo "[*] Creating 40GB Logical Volume 'private' in $VG_NAME..."
                 $LVCREATE_PATH -L 40G -n private "$VG_NAME"
                 VAULT_SOURCE="/dev/$VG_NAME/private"
             fi
+        else
+            echo "[!] Error: 'ubuntu-vg' not found. Falling back to block device mode."
+            VAULT_MODE="1"
         fi
-    fi
-fi
-
-if [ -z "$VAULT_SOURCE" ]; then
-    lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS | grep -v "loop"
-    echo ""
-    echo "1) Use a dedicated block device (e.g. /dev/sdb1)"
-    echo "2) Create a 20GB Portable Vault File (Recommended for VMs)"
-    read -p "[?] Select storage mode [1/2]: " VAULT_MODE < /dev/tty
-    
-    if [ "$VAULT_MODE" == "1" ]; then
-        read -p "[?] Enter block device path (e.g. /dev/sdc1): " VAULT_DEV < /dev/tty
-        VAULT_SOURCE="$VAULT_DEV"
     else
-        VAULT_SOURCE="/home/$APP_USER/vault.img"
-        if [ ! -f "$VAULT_SOURCE" ]; then
-            echo "[*] Creating 20GB Portable Vault file..."
-            $FALLOCATE_PATH -l 20G "$VAULT_SOURCE"
-            $CHOWN_PATH "$APP_USER:$APP_USER" "$VAULT_SOURCE"
-            modprobe loop || true
-        fi
+        echo "[!] Error: LVM tools not found. Falling back to block device mode."
+        VAULT_MODE="1"
     fi
 fi
 
-# [v1.8.12] Iron Curtain Protocol: Perform initial format and lock
-echo "[*] Initializing LUKS Vault (Passphrase Required)..."
-if ! cryptsetup isLuks "$VAULT_SOURCE"; then
-    echo "[!] Formatting new encrypted volume. DO NOT FORGET THIS PASSPHRASE."
-    cryptsetup luksFormat "$VAULT_SOURCE" < /dev/tty
+if [ "$VAULT_MODE" == "1" ]; then
+    read -p "[?] Enter block device path (e.g. /dev/sdc1): " VAULT_DEV < /dev/tty
+    VAULT_SOURCE="$VAULT_DEV"
+    
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo "!!! WARNING: DATA DESTRUCTION IMMINENT       !!!"
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo "The device $VAULT_SOURCE will be COMPLETELY ERASED"
+    echo "during the Web UI initialization step."
+    echo ""
+elif [ "$VAULT_MODE" == "2" ]; then
+    VAULT_SOURCE="/home/$APP_USER/vault.img"
+    if [ ! -f "$VAULT_SOURCE" ]; then
+        echo "[*] Creating 20GB Portable Vault file..."
+        $FALLOCATE_PATH -l 20G "$VAULT_SOURCE"
+        $CHOWN_PATH "$APP_USER:$APP_USER" "$VAULT_SOURCE"
+        modprobe loop || true
+    fi
 fi
 
-echo "[*] Verifying Vault Integrity..."
-cryptsetup luksOpen "$VAULT_SOURCE" memories < /dev/tty
-if [ ! -b "/dev/mapper/memories" ]; then
-    echo "[!] Encryption failed to map. Aborting."
-    exit 1
-fi
-
-if ! blkid /dev/mapper/memories | grep -q "ext4"; then
-    echo "[*] Creating filesystem (ext4)..."
-    $MKFS_PATH /dev/mapper/memories
-fi
-
+# Ensure mountpoint exists
 mkdir -p "$VAULT_MOUNT"
-$MOUNT_PATH /dev/mapper/memories "$VAULT_MOUNT"
-mkdir -p "$VAULT_MOUNT/thumbnails"
-mkdir -p "$VAULT_MOUNT/proxies"
 $CHOWN_PATH -R "$APP_USER:$APP_USER" "$VAULT_MOUNT"
-$UMOUNT_PATH "$VAULT_MOUNT"
 
-echo "[*] SLAMMING THE VAULT SHUT. Continuing install offline from the vault..."
-cryptsetup luksClose memories
-echo "[+] Vault Locked. Initial security established."
+echo "[*] Storage configured: $VAULT_SOURCE"
+echo "[*] Note: Final LUKS encryption will occur in the Web UI."
 echo "------------------------------------------------"
 
 # 7. App Deployment
