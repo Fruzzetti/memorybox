@@ -255,8 +255,8 @@ WorkingDirectory=$APP_DIR
 ExecStart=$APP_DIR/venv/bin/python3 main.py
 Restart=always
 RestartSec=5
-StandardOutput=append:$APP_DIR/memorybox.log
-StandardError=append:$APP_DIR/memorybox.log
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
